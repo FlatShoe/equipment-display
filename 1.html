@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A-Frame + Three.js 环网可视化</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.0/dist/aframe-environment-component.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+      }
+
+      #ui {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 10px;
+        z-index: 1000;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        max-width: 300px;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 24px;
+      }
+
+      .control-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #666;
+      }
+
+      select,
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      button {
+        background: #4285f4;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #3367d6;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .stat {
+        background: #f5f5f5;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #4285f4;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- A-Frame 场景 -->
+    <a-scene
+      cursor="rayOrigin: mouse"
+      raycaster="objects: .clickable"
+      renderer="colorManagement: true;"
+      vr-mode-ui="enabled: false"
+      embedded
+    >
+      <!-- 相机 -->
+      <a-entity
+        id="camera"
+        camera="fov: 80; zoom: 1;"
+        look-controls
+        wasd-controls="acceleration: 100"
+      >
+        <a-entity
+          cursor="fuse: false; fuseTimeout: 500"
+          position="0 0 -1"
+          geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+          material="color: white; shader: flat"
+          raycaster="objects: .clickable"
+        ></a-entity>
+      </a-entity>
+
+      <!-- 自定义环网组件 -->
+      <a-entity
+        id="network-container"
+        position="0 1.5 -4"
+        ring-network="nodeCount: 8; radius: 3"
+      ></a-entity>
+
+      <!-- 环境 -->
+      <a-entity environment="preset: forest; dressingAmount: 1000"></a-entity>
+
+      <!-- 灯光 -->
+      <a-entity light="type: ambient; color: #BBB; intensity: 0.5"></a-entity>
+      <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-5 5 5"></a-entity>
+
+      <!-- 地面 -->
+      <a-plane
+        position="0 0 0"
+        rotation="-90 0 0"
+        width="100"
+        height="100"
+        color="#e0e0e0"
+        shadow
+      ></a-plane>
+
+      <!-- 天空 -->
+      <a-sky color="#87CEEB"></a-sky>
+    </a-scene>
+
+    <!-- 控制面板 -->
+    <div id="ui">
+      <h1>🌐 环网可视化</h1>
+
+      <div class="control-group">
+        <label>节点数量</label>
+        <select id="nodeCount">
+          <option value="6">6 个节点</option>
+          <option value="8" selected>8 个节点</option>
+          <option value="10">10 个节点</option>
+          <option value="12">12 个节点</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>拓扑结构</label>
+        <select id="topology">
+          <option value="ring">单环</option>
+          <option value="dual-ring">双环</option>
+          <option value="mesh">网状</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>数据流动</label>
+        <select id="dataFlow">
+          <option value="clockwise">顺时针</option>
+          <option value="counterclockwise" selected>逆时针</option>
+        </select>
+      </div>
+
+      <button id="refresh">刷新网络</button>
+      <button id="simulateFault">模拟故障</button>
+      <button id="enterVR" style="background: #673ab7">进入 VR 模式</button>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="onlineNodes">8/8</div>
+          <div class="stat-label">在线节点</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="linkStatus">100%</div>
+          <div class="stat-label">链路状态</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 环网组件
+      AFRAME.registerComponent('ring-network', {
+        schema: {
+          nodeCount: {type: 'number', default: 8},
+          radius: {type: 'number', default: 3},
+          topology: {type: 'string', default: 'ring'},
+          dataFlow: {type: 'string', default: 'counterclockwise'}
+        },
+
+        init: function () {
+          // 获取 Three.js 对象
+          this.object3D = this.el.object3D
+          this.scene = this.el.sceneEl.object3D
+
+          // 网络元素
+          this.nodes = []
+          this.links = []
+          this.dataParticles = []
+
+          // 创建网络
+          this.createNetwork()
+
+          // 添加事件监听
+          this.setupEventListeners()
+        },
+
+        update: function (oldData) {
+          // 如果配置改变，重新创建网络
+          if (
+            oldData.nodeCount !== this.data.nodeCount ||
+            oldData.topology !== this.data.topology
+          ) {
+            this.clearNetwork()
+            this.createNetwork()
+          }
+        },
+
+        tick: function (time) {
+          // 更新动画
+          this.updateAnimations(time)
+        },
+
+        createNetwork: function () {
+          const nodeCount = this.data.nodeCount
+          const radius = this.data.radius
+
+          // 创建节点
+          for (let i = 0; i < nodeCount; i++) {
+            this.createNode(i, radius)
+          }
+
+          // 创建连接
+          this.createLinks()
+
+          // 创建数据粒子
+          this.createDataParticles()
+        },
+
+        createNode: function (index, radius) {
+          // 计算节点位置
+          const angle = (index / this.data.nodeCount) * Math.PI * 2
+          const x = Math.cos(angle) * radius
+          const z = Math.sin(angle) * radius
+
+          // 随机状态
+          const status = Math.random() > 0.8 ? 'warning' : 'healthy'
+          const color = status === 'healthy' ? 0x4285f4 : 0xff9800
+
+          // 使用 Three.js 创建球体
+          const geometry = new THREE.SphereGeometry(0.3, 16, 16)
+          const material = new THREE.MeshStandardMaterial({
+            color: color,
+            metalness: 0.3,
+            roughness: 0.4
+          })
+
+          const sphere = new THREE.Mesh(geometry, material)
+          sphere.position.set(x, 0, z)
+          sphere.castShadow = true
+
+          // 保存节点信息
+          sphere.userData = {
+            type: 'node',
+            id: index,
+            status: status
+          }
+
+          // 添加到场景
+          this.object3D.add(sphere)
+          this.nodes.push(sphere)
+
+          // 创建节点标签
+          this.createNodeLabel(sphere, index)
+
+          return sphere
+        },
+
+        createNodeLabel: function (node, index) {
+          // 创建文本标签
+          const canvas = document.createElement('canvas')
+          const context = canvas.getContext('2d')
+          canvas.width = 256
+          canvas.height = 128
+
+          // 绘制文本
+          context.fillStyle = 'rgba(0, 0, 0, 0)'
+          context.fillRect(0, 0, canvas.width, canvas.height)
+
+          context.font = 'bold 40px Arial'
+          context.fillStyle = '#333333'
+          context.textAlign = 'center'
+          context.textBaseline = 'middle'
+          context.fillText(`N${index + 1}`, canvas.width / 2, canvas.height / 2)
+
+          // 创建纹理
+          const texture = new THREE.CanvasTexture(canvas)
+          const spriteMaterial = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true
+          })
+
+          const sprite = new THREE.Sprite(spriteMaterial)
+          sprite.scale.set(2, 1, 1)
+          sprite.position.y = 0.8
+          node.add(sprite)
+        },
+
+        createLinks: function () {
+          const nodeCount = this.data.nodeCount
+
+          // 根据拓扑类型创建连接
+          switch (this.data.topology) {
+            case 'ring':
+              this.createRingLinks()
+              break
+            case 'dual-ring':
+              this.createDualRingLinks()
+              break
+            case 'mesh':
+              this.createMeshLinks()
+              break
+          }
+        },
+
+        createRingLinks: function () {
+          for (let i = 0; i < this.nodes.length; i++) {
+            const nextIndex = (i + 1) % this.nodes.length
+            this.createLink(i, nextIndex)
+          }
+        },
+
+        createDualRingLinks: function () {
+          // 主环
+          for (let i = 0; i < this.nodes.length; i++) {
+            const nextIndex = (i + 1) % this.nodes.length
+            this.createLink(i, nextIndex, 0x4285f4, 0.8)
+          }
+
+          // 备用环
+          for (let i = 0; i < this.nodes.length; i++) {
+            const nextIndex = (i + 2) % this.nodes.length
+            this.createLink(i, nextIndex, 0x9c27b0, 0.4)
+          }
+        },
+
+        createMeshLinks: function () {
+          for (let i = 0; i < this.nodes.length; i++) {
+            for (let j = i + 1; j < this.nodes.length; j++) {
+              if (Math.random() > 0.6) {
+                // 40%的连接概率
+                this.createLink(i, j, 0x4285f4, Math.random() * 0.3 + 0.2)
+              }
+            }
+          }
+        },
+
+        createLink: function (fromIndex, toIndex, color = 0x4285f4, opacity = 0.7) {
+          const fromNode = this.nodes[fromIndex]
+          const toNode = this.nodes[toIndex]
+
+          if (!fromNode || !toNode) return
+
+          // 创建曲线路径
+          const points = []
+          const fromPos = fromNode.position.clone()
+          const toPos = toNode.position.clone()
+
+          // 添加中间控制点，使连接线呈弧形
+          const midPoint = fromPos.clone().lerp(toPos, 0.5)
+          midPoint.y += 1
+
+          points.push(fromPos)
+          points.push(midPoint)
+          points.push(toPos)
+
+          const curve = new THREE.CatmullRomCurve3(points)
+          const curvePoints = curve.getPoints(20)
+
+          // 创建连接线几何体
+          const geometry = new THREE.BufferGeometry().setFromPoints(curvePoints)
+          const material = new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: opacity,
+            linewidth: 2
+          })
+
+          const line = new THREE.Line(geometry, material)
+          line.userData = {
+            type: 'link',
+            from: fromIndex,
+            to: toIndex
+          }
+
+          this.object3D.add(line)
+          this.links.push(line)
+        },
+
+        createDataParticles: function () {
+          for (let i = 0; i < 8; i++) {
+            // 8个数据粒子
+            const geometry = new THREE.SphereGeometry(0.1, 8, 8)
+            const material = new THREE.MeshBasicMaterial({
+              color: 0x00ff00
+            })
+
+            const particle = new THREE.Mesh(geometry, material)
+            particle.visible = false
+            particle.userData = {
+              type: 'particle',
+              speed: 0.01 + Math.random() * 0.005,
+              progress: Math.random(),
+              linkIndex: Math.floor(Math.random() * this.links.length)
+            }
+
+            this.object3D.add(particle)
+            this.dataParticles.push(particle)
+          }
+        },
+
+        updateAnimations: function (time) {
+          const timeInSeconds = time / 1000
+
+          // 节点浮动动画
+          this.nodes.forEach((node, index) => {
+            const floatHeight = Math.sin(timeInSeconds + index) * 0.2
+            node.position.y = floatHeight
+
+            // 节点自转
+            node.rotation.y += 0.01
+          })
+
+          // 数据粒子动画
+          this.animateDataParticles(timeInSeconds)
+        },
+
+        animateDataParticles: function (time) {
+          this.dataParticles.forEach(particle => {
+            if (particle.userData.linkIndex >= this.links.length) {
+              particle.visible = false
+              return
+            }
+
+            const link = this.links[particle.userData.linkIndex]
+            if (!link || !link.geometry.attributes.position) {
+              particle.visible = false
+              return
+            }
+
+            // 沿连接线移动粒子
+            particle.userData.progress += particle.userData.speed
+            if (particle.userData.progress > 1) {
+              particle.userData.progress = 0
+              particle.userData.linkIndex = Math.floor(Math.random() * this.links.length)
+              return
+            }
+
+            // 根据数据流方向调整进度
+            let progress = particle.userData.progress
+            if (this.data.dataFlow === 'clockwise') {
+              progress = 1 - particle.userData.progress
+            }
+
+            // 计算粒子位置
+            const positions = link.geometry.attributes.position.array
+            const pointCount = positions.length / 3
+            const pointIndex = Math.floor(progress * (pointCount - 1))
+
+            if (pointIndex >= 0 && pointIndex < pointCount) {
+              const x = positions[pointIndex * 3]
+              const y = positions[pointIndex * 3 + 1]
+              const z = positions[pointIndex * 3 + 2]
+
+              particle.position.set(x, y, z)
+              particle.visible = true
+            }
+          })
+        },
+
+        clearNetwork: function () {
+          // 移除所有节点
+          this.nodes.forEach(node => {
+            this.object3D.remove(node)
+            node.geometry.dispose()
+            node.material.dispose()
+          })
+
+          // 移除所有连接
+          this.links.forEach(link => {
+            this.object3D.remove(link)
+            link.geometry.dispose()
+            link.material.dispose()
+          })
+
+          // 移除所有粒子
+          this.dataParticles.forEach(particle => {
+            this.object3D.remove(particle)
+            particle.geometry.dispose()
+            particle.material.dispose()
+          })
+
+          this.nodes = []
+          this.links = []
+          this.dataParticles = []
+        },
+
+        setupEventListeners: function () {
+          // 监听 A-Frame 的鼠标事件
+          this.el.addEventListener('click', event => {
+            const target = event.detail.intersection.object
+
+            if (target.userData && target.userData.type === 'node') {
+              this.handleNodeClick(target)
+            }
+          })
+        },
+
+        handleNodeClick: function (node) {
+          console.log('点击了节点:', node.userData.id)
+
+          // 切换节点颜色
+          if (node.material.color.getHex() === 0x4285f4) {
+            node.material.color.setHex(0xff0000)
+          } else {
+            node.material.color.setHex(0x4285f4)
+          }
+
+          // 更新 UI
+          this.updateUI()
+        },
+
+        updateUI: function () {
+          const healthyNodes = this.nodes.filter(
+            node => node.material.color.getHex() === 0x4285f4
+          ).length
+
+          document.getElementById(
+            'onlineNodes'
+          ).textContent = `${healthyNodes}/${this.nodes.length}`
+
+          document.getElementById('linkStatus').textContent = `${Math.round(
+            (healthyNodes / this.nodes.length) * 100
+          )}%`
+        }
+      })
+
+      // 网络管理器组件
+      AFRAME.registerComponent('network-manager', {
+        init: function () {
+          this.network = document.getElementById('network-container')
+
+          // 设置 UI 事件监听
+          this.setupUIListeners()
+        },
+
+        setupUIListeners: function () {
+          // 节点数量控制
+          document.getElementById('nodeCount').addEventListener('change', e => {
+            this.network.setAttribute('ring-network', 'nodeCount', e.target.value)
+          })
+
+          // 拓扑结构控制
+          document.getElementById('topology').addEventListener('change', e => {
+            this.network.setAttribute('ring-network', 'topology', e.target.value)
+          })
+
+          // 数据流向控制
+          document.getElementById('dataFlow').addEventListener('change', e => {
+            this.network.setAttribute('ring-network', 'dataFlow', e.target.value)
+          })
+
+          // 刷新网络
+          document.getElementById('refresh').addEventListener('click', () => {
+            const nodeCount = document.getElementById('nodeCount').value
+            this.network.setAttribute('ring-network', 'nodeCount', nodeCount)
+          })
+
+          // 模拟故障
+          document.getElementById('simulateFault').addEventListener('click', () => {
+            this.simulateNetworkFault()
+          })
+
+          // 进入 VR 模式
+          document.getElementById('enterVR').addEventListener('click', () => {
+            if (AFRAME.utils.device.isVR()) {
+              this.enterVRMode()
+            } else {
+              alert('您的设备不支持 VR 模式')
+            }
+          })
+        },
+
+        simulateNetworkFault: function () {
+          const network = this.network.components['ring-network']
+
+          if (network && network.nodes.length > 0) {
+            // 随机选择一个节点设置为故障状态
+            const randomIndex = Math.floor(Math.random() * network.nodes.length)
+            const node = network.nodes[randomIndex]
+
+            // 将节点颜色改为红色
+            node.material.color.setHex(0xff0000)
+
+            // 更新 UI
+            network.updateUI()
+          }
+        },
+
+        enterVRMode: function () {
+          const scene = document.querySelector('a-scene')
+
+          if (scene.hasAttribute('vr-mode-ui')) {
+            scene.setAttribute('vr-mode-ui', 'enabled', true)
+          }
+
+          // 进入 VR 模式
+          if (scene.enterVR) {
+            scene.enterVR()
+          }
+        }
+      })
+
+      // 页面加载完成后初始化
+      document.addEventListener('DOMContentLoaded', () => {
+        // 自动添加网络管理器组件到场景
+        const scene = document.querySelector('a-scene')
+        scene.setAttribute('network-manager', '')
+
+        console.log('A-Frame + Three.js 环网可视化已加载')
+      })
+    </script>
+  </body>
+</html>
