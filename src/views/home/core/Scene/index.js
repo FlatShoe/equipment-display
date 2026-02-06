@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
+import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 import Stats from 'stats.js'
 import sceneConfig from './config'
 
@@ -19,7 +20,7 @@ export default class Scene {
     this.camera.position.copy(sceneConfig.camera.defaultPos)
 
     // 创建 WebGL 渲染器
-    this.renderer = new THREE.WebGLRenderer({antialias: true})
+    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.shadowMap.enabled = true
@@ -27,6 +28,14 @@ export default class Scene {
 
     // 添加到容器
     this.container.appendChild(this.renderer.domElement)
+
+    // 创建 CSS3D 渲染器
+    this.css3dRenderer = new CSS3DRenderer()
+    this.css3dRenderer.setSize(window.innerWidth, window.innerHeight)
+    this.css3dRenderer.domElement.style.position = 'absolute'
+    this.css3dRenderer.domElement.style.top = '0px'
+    this.css3dRenderer.domElement.style.pointerEvents = 'none'
+    this.container.appendChild(this.css3dRenderer.domElement)
 
     // 创建控制器
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
