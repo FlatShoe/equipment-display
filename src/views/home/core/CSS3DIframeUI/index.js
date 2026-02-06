@@ -1,116 +1,354 @@
 import * as THREE from 'three'
-import {CSS3DRenderer, CSS3DObject} from 'three/examples/jsm/renderers/CSS3DRenderer.js'
+import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 
-// CSS3D Iframe 管理器类
 export default class CSS3DIframeManager {
   constructor(scene, camera, container) {
     this.scene = scene
     this.camera = camera
     this.container = container
-
-    // CSS3D 元素映射
-    this.elements = new Map()
-    this.elementCount = 0
-
-    // 创建 CSS3D 渲染器
+    this.css3dObjects = []
     this.renderer = null
-    this.createRenderer()
-
-    // 创建 WebGL 渲染器（可选）
-    this.rendererWebGL = null
-    this.createWebGLRenderer()
-
-    // 添加到容器
-    this.container.appendChild(this.renderer.domElement)
-    this.container.appendChild(this.rendererWebGL.domElement)
-
-    const frame = this.buildFrame(10, 20, 1)
-    scene.add(frame)
-
-    this.test()
+    
+    this.init()
   }
 
-  createRenderer() {
+  init() {
+    // 创建 CSS3D 渲染器
     this.renderer = new CSS3DRenderer()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.domElement.style.position = 'absolute'
     this.renderer.domElement.style.top = '0'
     this.renderer.domElement.style.left = '0'
     this.renderer.domElement.style.pointerEvents = 'none'
-    this.renderer.domElement.style.zIndex = '1'
-  }
+    this.container.appendChild(this.renderer.domElement)
 
-  createWebGLRenderer() {
-    this.rendererWebGL = new THREE.WebGLRenderer({antialias: true, alpha: true})
-    this.rendererWebGL.setSize(window.innerWidth, window.innerHeight)
-    this.rendererWebGL.domElement.style.position = 'absolute'
-    this.rendererWebGL.domElement.style.top = '0'
-    this.rendererWebGL.domElement.style.left = '0'
-    this.rendererWebGL.domElement.style.pointerEvents = 'none'
-    this.rendererWebGL.domElement.style.zIndex = '0'
-    this.container.appendChild(this.rendererWebGL.domElement)
-  }
-
-  buildFrame(width, height, thickness) {
-    const group = new THREE.Group()
-    const material = new THREE.MeshStandardMaterial({color: 0x2200ff})
-
-    // Create the frame border 这是一个有洞的矩形
-    const outerShape = new THREE.Shape()
-    outerShape.moveTo(-(width / 2 + thickness), -(height / 2 + thickness))
-    outerShape.lineTo(width / 2 + thickness, -(height / 2 + thickness))
-    outerShape.lineTo(width / 2 + thickness, height / 2 + thickness)
-    outerShape.lineTo(-(width / 2 + thickness), height / 2 + thickness)
-    outerShape.lineTo(-(width / 2 + thickness), -(height / 2 + thickness))
-
-    // Create inner rectangle (hole) 这个是洞
-    const innerHole = new THREE.Path()
-    innerHole.moveTo(-width / 2, -height / 2)
-    innerHole.lineTo(width / 2, -height / 2)
-    innerHole.lineTo(width / 2, height / 2)
-    innerHole.lineTo(-width / 2, height / 2)
-    innerHole.lineTo(-width / 2, -height / 2)
-
-    outerShape.holes.push(innerHole)
-
-    const frameGeometry = new THREE.ExtrudeGeometry(outerShape, {
-      depth: thickness,
-      bevelEnabled: true, // Enable bevel
-      bevelThickness: 5,
-      bevelSize: 5,
-      bevelSegments: 2
-    })
-
-    const frameMesh = new THREE.Mesh(frameGeometry, material)
-    frameMesh.position.z = -thickness / 2
-    group.add(frameMesh)
-
-    // Add back plane // 这是背面板
-    const backGeometry = new THREE.PlaneGeometry(width + thickness * 2, height + thickness * 2)
-    const backMesh = new THREE.Mesh(backGeometry, material)
-    backMesh.position.set(0, 0, -thickness / 2)
-    backMesh.rotation.y = Math.PI
-    group.add(backMesh)
-
-    group.position.set(0, height / 2, 0)
+    // 监听窗口大小变化
+    window.addEventListener('resize', this.onWindowResize.bind(this))
     
-
-    return group
+    console.log('CSS3DIframeManager 初始化完成')
   }
 
-  test() {
-    // Add room
-    // BoxGeometry 第一个参数是宽度，第二个是高度，第三个是深度 第四个是宽度分段数，第五个是高度分段数，第六个是深度分段数
-    const roomGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(5, 5, 5, 10, 10, 10))
-    const roomMaterial = new THREE.LineBasicMaterial({
-      // 黑色
-      color: 0x000000,
-      opacity: 0.2,
-      transparent: true
+  /**
+   * 创建玻璃拟态面板
+   * @param {string} title - 面板标题
+   * @param {Object} data - 参数数据
+   * @param {THREE.Vector3} position - 位置
+   * @param {Object} options - 配置选项
+   * @returns {CSS3DObject}
+   */
+  createGlassPanel(title, data, position, options = {}) {
+    const {
+      width = 300,
+      height = 250,
+      backgroundColor = 'rgba(255, 255, 255, 0.15)',
+      showCloseButton = true
+    } = options
+
+    // 创建面板容器
+    const panelDiv = document.createElement('div')
+    panelDiv.className = 'glass-panel-3d'
+    panelDiv.style.cssText = `
+      width: ${width}px;
+      height: ${height}px;
+      background: ${backgroundColor};
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: auto;
+      user-select: none;
+    `
+
+    // 创建标题区域
+    const headerDiv = document.createElement('div')
+    headerDiv.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    `
+
+    const titleDiv = document.createElement('h3')
+    titleDiv.textContent = title
+    titleDiv.style.cssText = `
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 600;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      margin: 0;
+    `
+    headerDiv.appendChild(titleDiv)
+
+    // 关闭按钮
+    if (showCloseButton) {
+      const closeBtn = document.createElement('button')
+      closeBtn.innerHTML = '×'
+      closeBtn.style.cssText = `
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.9);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      `
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        this.removeObject(css3dObject)
+      })
+      headerDiv.appendChild(closeBtn)
+    }
+
+    panelDiv.appendChild(headerDiv)
+
+    // 创建参数信息区域
+    const contentDiv = document.createElement('div')
+    contentDiv.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    `
+
+    // 添加参数数据
+    Object.entries(data).forEach(([key, value]) => {
+      const paramDiv = document.createElement('div')
+      paramDiv.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      `
+
+      const labelSpan = document.createElement('span')
+      labelSpan.textContent = `${key}：`
+      labelSpan.style.cssText = `
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1rem;
+        font-weight: 500;
+      `
+
+      const valueSpan = document.createElement('span')
+      valueSpan.textContent = value
+      valueSpan.style.cssText = `
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 15px;
+        min-width: 80px;
+        text-align: center;
+        background: rgba(52, 152, 219, 0.3);
+        color: #3498db;
+        border: 1px solid rgba(52, 152, 219, 0.4);
+      `
+
+      paramDiv.appendChild(labelSpan)
+      paramDiv.appendChild(valueSpan)
+      contentDiv.appendChild(paramDiv)
     })
-    const room = new THREE.LineSegments(roomGeometry, roomMaterial)
-    this.scene.add(room)
-    // // 如何设置room的位置 第一个参数是x轴，第二个是y轴，第三个是z轴 y 为什么设置为2.5 因为box的高度是5 所以y轴设置为2.5 就是底部在0点位置
-    room.position.set(0, 2.6, 0)
+
+    panelDiv.appendChild(contentDiv)
+
+    // 创建 CSS3D 对象
+    const css3dObject = new CSS3DObject(panelDiv)
+    css3dObject.position.copy(position)
+    css3dObject.userData = { type: 'glass-panel', title, data }
+    
+    // 添加到场景和管理器
+    this.scene.add(css3dObject)
+    this.css3dObjects.push(css3dObject)
+
+    return css3dObject
+  }
+
+  /**
+   * 创建设备状态卡片（类似 test.html）
+   * @param {string} deviceName - 设备名称
+   * @param {Object} statusData - 状态数据
+   * @param {THREE.Vector3} position - 位置
+   * @returns {CSS3DObject}
+   */
+  createDeviceCard(deviceName, statusData, position) {
+    const cardDiv = document.createElement('div')
+    cardDiv.className = 'device-card-3d'
+    cardDiv.style.cssText = `
+      width: 350px;
+      height: 220px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      pointer-events: auto;
+    `
+
+    // 左侧信息区域
+    const infoSection = document.createElement('div')
+    infoSection.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-right: 20px;
+    `
+
+    // 设备名称
+    const nameDiv = document.createElement('div')
+    const nameH2 = document.createElement('h2')
+    nameH2.textContent = deviceName
+    nameH2.style.cssText = `
+      color: #fff;
+      font-size: 1.8rem;
+      font-weight: 600;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      margin: 0;
+    `
+    nameDiv.appendChild(nameH2)
+    infoSection.appendChild(nameDiv)
+
+    // 状态信息
+    const statusInfo = document.createElement('div')
+    statusInfo.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    `
+
+    Object.entries(statusData).forEach(([key, value]) => {
+      const statusItem = document.createElement('div')
+      statusItem.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      `
+
+      const labelSpan = document.createElement('span')
+      labelSpan.textContent = `${key}：`
+      labelSpan.style.cssText = `
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.95rem;
+        font-weight: 500;
+      `
+
+      const valueSpan = document.createElement('span')
+      valueSpan.textContent = value
+      valueSpan.style.cssText = `
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 12px;
+        min-width: 70px;
+        text-align: center;
+        background: rgba(52, 152, 219, 0.3);
+        color: #3498db;
+        border: 1px solid rgba(52, 152, 219, 0.4);
+      `
+
+      statusItem.appendChild(labelSpan)
+      statusItem.appendChild(valueSpan)
+      statusInfo.appendChild(statusItem)
+    })
+
+    infoSection.appendChild(statusInfo)
+    cardDiv.appendChild(infoSection)
+
+    // 右侧图标区域
+    const iconSection = document.createElement('div')
+    iconSection.style.cssText = `
+      width: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    `
+
+    const icon = document.createElement('i')
+    icon.className = 'fas fa-server'
+    icon.style.cssText = `
+      font-size: 3.5rem;
+      color: #fff;
+      filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+    `
+    iconSection.appendChild(icon)
+    cardDiv.appendChild(iconSection)
+
+    const css3dObject = new CSS3DObject(cardDiv)
+    css3dObject.position.copy(position)
+    css3dObject.userData = { type: 'device-card', deviceName, statusData }
+    
+    this.scene.add(css3dObject)
+    this.css3dObjects.push(css3dObject)
+
+    return css3dObject
+  }
+
+  /**
+   * 移除对象
+   */
+  removeObject(object) {
+    if (object.parent) {
+      object.parent.remove(object)
+    }
+    const index = this.css3dObjects.indexOf(object)
+    if (index > -1) {
+      this.css3dObjects.splice(index, 1)
+    }
+  }
+
+  /**
+   * 移除所有对象
+   */
+  removeAllObjects() {
+    this.css3dObjects.forEach(obj => {
+      if (obj.parent) {
+        obj.parent.remove(obj)
+      }
+    })
+    this.css3dObjects = []
+  }
+
+  /**
+   * 更新渲染
+   */
+  update() {
+    if (this.renderer) {
+      this.renderer.render(this.scene, this.camera)
+    }
+  }
+
+  /**
+   * 窗口大小调整
+   */
+  onWindowResize() {
+    if (this.renderer) {
+      this.renderer.setSize(window.innerWidth, window.innerHeight)
+    }
+  }
+
+  /**
+   * 销毁
+   */
+  dispose() {
+    this.removeAllObjects()
+    if (this.renderer && this.renderer.domElement.parentNode) {
+      this.renderer.domElement.parentNode.removeChild(this.renderer.domElement)
+    }
+    window.removeEventListener('resize', this.onWindowResize.bind(this))
   }
 }

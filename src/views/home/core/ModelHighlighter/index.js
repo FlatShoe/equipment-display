@@ -1,4 +1,3 @@
-// ModelHighlighter.js
 import * as THREE from 'three'
 
 export default class ModelHighlighter {

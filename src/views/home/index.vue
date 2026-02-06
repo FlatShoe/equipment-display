@@ -39,26 +39,33 @@ export default {
     },
     // 添加参数面板到3D场景
     async addParameterPanelTo3D() {
-      if (!window.equipmentDisplay || !window.equipmentDisplay) {
-        console.error('Three.js场景未初始化')
+      if (!window.equipmentDisplay || !window.equipmentDisplay.css3dManager) {
+        console.error('Three.js场景或CSS3D管理器未初始化')
         return
       }
 
       try {
-        // 调用参数面板组件的方法创建纹理平面
-        await this.$refs.parameterTextureRef.createTexturePlane(
-          window.equipmentDisplay.scene.getScene(),
-          {
-            x: 3,
-            y: 2,
-            z: 0,
-            rotationY: -0.3
+        // 创建玻璃拟态参数面板
+        const panelData = {
+          title: '设备参数监控',
+          parameters: {
+            temperature: '25°C',
+            humidity: '45%',
+            power: '95%',
+            voltage: '220V'
           }
-        )
-
-        console.log('参数面板已添加到3D场景')
+        }
+        
+        const glassPanel = window.equipmentDisplay.createGlassPanel(panelData, {
+          x: 3,
+          y: 2,
+          z: 0,
+          rotationY: -0.3
+        })
+        
+        console.log('玻璃拟态参数面板已添加到3D场景')
       } catch (error) {
-        console.error('添加参数面板失败:', error)
+        console.error('添加玻璃拟态参数面板失败:', error)
       }
     }
   },

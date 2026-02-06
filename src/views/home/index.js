@@ -5,6 +5,8 @@ import gsap from 'gsap'
 import sceneConfig from './core/Scene/config'
 import ThreeClickCoordinator from './core/ThreeClickCoordinator/index.js'
 import CSS3DIframeManager from './core/CSS3DIframeUI/index'
+import ModelHighlighter from './core/ModelHighlighter/index'
+import GlassPanel from './glass-panel/index'
 
 class EquipmentDisplay {
   constructor(container) {
@@ -13,6 +15,8 @@ class EquipmentDisplay {
     this.equipmentLoader = null
     this.deviceMonitor = null
     this.clickCoordinator = null
+    this.css3dManager = null
+    this.glassPanel = null
 
     // 加载状态
     this.isLoaded = false
@@ -54,11 +58,11 @@ class EquipmentDisplay {
       )
 
       // 创建 CSS3DIframeUI
-      // this.css3dManager = new CSS3DIframeManager(
-      //   this.scene.getScene(),
-      //   this.scene.getCamera(),
-      //   this.container
-      // )
+      this.css3dManager = new CSS3DIframeManager(
+        this.scene.getScene(),
+        this.scene.getCamera(),
+        this.container
+      )
 
       // 设置点击回调
       this.setupClickHandler()

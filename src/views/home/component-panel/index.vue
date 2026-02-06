@@ -103,6 +103,30 @@ export default {
         y: (Math.random() * 5).toFixed(2),
         z: (Math.random() * 10 - 5).toFixed(2)
       }
+
+      // 创建 3D 玻璃面板显示组件详情
+      if (window.equipmentDisplay && window.equipmentDisplay.createGlassPanel) {
+        // 先移除之前的面板
+        if (this.currentGlassPanel) {
+          window.equipmentDisplay.removeGlassPanel(this.currentGlassPanel)
+        }
+        
+        // 创建新的玻璃面板
+        const panelData = {
+          title: component.name,
+          icon: 'fas fa-server',
+          status: this.getStatusText(component.status),
+          temperature: '28°C',
+          network: '正常',
+          power: '95%'
+        }
+        
+        this.currentGlassPanel = window.equipmentDisplay.createGlassPanel(panelData, {
+          x: 3,
+          y: 2,
+          z: 0
+        })
+      }
     },
   }
 }
