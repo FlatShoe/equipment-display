@@ -65,8 +65,7 @@ export default class Scene {
 
     // 环境纹理
     let envTextureEquirec = this.textureLoader.load(
-      // (process.env.BASE_URL || '/') + 'texture/envmap/room.png'
-      (process.env.BASE_URL || '/') + 'texture/envmap/spruit_sunrise_4k.webp'
+      (process.env.BASE_URL || '/') + 'texture/envmap/room.png'
     )
     envTextureEquirec.mapping = THREE.EquirectangularReflectionMapping
     envTextureEquirec.colorSpace = THREE.SRGBColorSpace
