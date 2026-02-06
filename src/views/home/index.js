@@ -64,6 +64,20 @@ class EquipmentDisplay {
         this.container
       )
 
+      // 创建模型高亮器
+      this.modelHighlighter = new ModelHighlighter({
+        scene: this.scene.getScene(),
+        camera: this.scene.getCamera(),
+        model: this.model
+      })
+
+      // 创建玻璃面板管理器
+      this.glassPanel = new GlassPanel({
+        scene: this.scene.getScene(),
+        camera: this.scene.getCamera(),
+        css3dManager: this.css3dManager
+      })
+
       // 设置点击回调
       this.setupClickHandler()
 
