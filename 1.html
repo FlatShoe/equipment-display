@@ -1,649 +1,1324 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>A-Frame + Three.js 环网可视化</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.3.0/dist/aframe-environment-component.min.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D UI 组件集合</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: Arial, sans-serif;
-        overflow: hidden;
-      }
-
-      #ui {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 20px;
-        border-radius: 10px;
-        z-index: 1000;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        max-width: 300px;
-      }
-
-      h1 {
-        color: #333;
-        margin-bottom: 20px;
-        font-size: 24px;
-      }
-
-      .control-group {
-        margin-bottom: 15px;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 5px;
-        color: #666;
-      }
-
-      select,
-      button {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-
-      button {
-        background: #4285f4;
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-
-      button:hover {
-        background: #3367d6;
-      }
-
-      .stats {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-top: 20px;
-      }
-
-      .stat {
-        background: #f5f5f5;
-        padding: 10px;
-        border-radius: 5px;
-        text-align: center;
-      }
-
-      .stat-value {
-        font-size: 18px;
-        font-weight: bold;
-        color: #4285f4;
-      }
-
-      .stat-label {
-        font-size: 12px;
-        color: #666;
-      }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* 标题样式 */
+        .page-title {
+            text-align: center;
+            margin-bottom: 60px;
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -1px;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            margin: 80px 0 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid rgba(96, 165, 250, 0.3);
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+        }
+        
+        /* 3D 文字墙 */
+        .word-wall-section {
+            margin: 60px 0;
+        }
+        
+        .word-wall-3d {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            padding: 30px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .word-item-3d {
+            background: linear-gradient(145deg, #1e293b, #334155);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .word-item-3d::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .word-item-3d:hover {
+            transform: translateY(-10px) translateZ(20px) rotateX(5deg) rotateY(5deg);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(145deg, #334155, #475569);
+        }
+        
+        .word-item-3d:hover::before {
+            left: 100%;
+        }
+        
+        .word-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: block;
+        }
+        
+        .word-subtitle {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+        
+        /* 3D 列表 */
+        .list-3d-section {
+            margin: 60px 0;
+        }
+        
+        .list-3d {
+            max-width: 800px;
+            margin: 0 auto;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .list-item-3d {
+            background: rgba(30, 41, 59, 0.7);
+            margin: 15px 0;
+            padding: 20px 30px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .list-item-3d:hover {
+            transform: translateX(20px) translateZ(15px) rotateY(-5deg);
+            background: rgba(51, 65, 85, 0.8);
+            box-shadow: -10px 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+        
+        .list-index {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .list-content {
+            flex: 1;
+        }
+        
+        .list-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #f1f5f9;
+        }
+        
+        .list-description {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        
+        .list-badge {
+            padding: 5px 15px;
+            background: rgba(96, 165, 250, 0.2);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #60a5fa;
+        }
+        
+        /* 3D 菜单 */
+        .menu-3d-section {
+            margin: 60px 0;
+        }
+        
+        .menu-3d {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            transform-style: preserve-3d;
+            perspective: 800px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .menu-item-3d {
+            padding: 18px 35px;
+            background: linear-gradient(145deg, #1e293b, #334155);
+            border-radius: 50px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .menu-item-3d::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(167, 139, 250, 0.2));
+            border-radius: 50px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .menu-item-3d:hover {
+            transform: translateY(-5px) translateZ(20px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menu-item-3d:hover::before {
+            opacity: 1;
+        }
+        
+        .menu-item-3d.active {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            box-shadow: 0 10px 20px rgba(96, 165, 250, 0.3);
+        }
+        
+        .menu-icon {
+            font-size: 1.2rem;
+        }
+        
+        .menu-text {
+            font-weight: 600;
+            font-size: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 3D 卡片 */
+        .cards-3d-section {
+            margin: 60px 0;
+        }
+        
+        .cards-grid-3d {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .card-3d {
+            background: linear-gradient(145deg, #1e293b, #334155);
+            border-radius: 20px;
+            padding: 30px;
+            transform-style: preserve-3d;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .card-3d::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(96, 165, 250, 0.1) 0%, 
+                transparent 30%, 
+                transparent 70%, 
+                rgba(167, 139, 250, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .card-3d:hover {
+            transform: translateY(-15px) translateZ(30px) rotateX(5deg);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+        
+        .card-3d:hover::before {
+            opacity: 1;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+        
+        .card-description {
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        
+        /* 3D 表格 */
+        .table-3d-section {
+            margin: 60px 0;
+            overflow: hidden;
+        }
+        
+        .table-3d {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 15px;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .table-header-3d {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(167, 139, 250, 0.2));
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        .table-row-3d {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: all 0.3s ease;
+        }
+        
+        .table-row-3d:hover {
+            background: rgba(51, 65, 85, 0.8);
+            transform: translateZ(10px);
+        }
+        
+        .table-cell {
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        .status-pending {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+        }
+        
+        /* 3D 进度条 */
+        .progress-3d-section {
+            margin: 60px 0;
+        }
+        
+        .progress-container-3d {
+            max-width: 600px;
+            margin: 0 auto;
+            transform-style: preserve-3d;
+            perspective: 800px;
+        }
+        
+        .progress-item-3d {
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .progress-bar-3d {
+            height: 20px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: perspective(500px) rotateX(20deg);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            border-radius: 10px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        
+        /* 3D 工具提示 */
+        .tooltip-3d {
+            position: absolute;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+        }
+        
+        .tooltip-3d.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1) translateZ(20px);
+        }
+        
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #f1f5f9;
+        }
+        
+        .tooltip-content {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2.5rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .word-wall-3d {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+                padding: 20px;
+            }
+            
+            .word-item-3d {
+                padding: 15px;
+            }
+            
+            .cards-grid-3d {
+                grid-template-columns: 1fr;
+            }
+            
+            .menu-3d {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .menu-item-3d {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .table-header-3d,
+            .table-row-3d {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+        
+        /* 控制面板 */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        
+        .control-slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(96, 165, 250, 0.4);
+        }
+        
+        .control-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
     </style>
-  </head>
-  <body>
-    <!-- A-Frame 场景 -->
-    <a-scene
-      cursor="rayOrigin: mouse"
-      raycaster="objects: .clickable"
-      renderer="colorManagement: true;"
-      vr-mode-ui="enabled: false"
-      embedded
-    >
-      <!-- 相机 -->
-      <a-entity
-        id="camera"
-        camera="fov: 80; zoom: 1;"
-        look-controls
-        wasd-controls="acceleration: 100"
-      >
-        <a-entity
-          cursor="fuse: false; fuseTimeout: 500"
-          position="0 0 -1"
-          geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-          material="color: white; shader: flat"
-          raycaster="objects: .clickable"
-        ></a-entity>
-      </a-entity>
-
-      <!-- 自定义环网组件 -->
-      <a-entity
-        id="network-container"
-        position="0 1.5 -4"
-        ring-network="nodeCount: 8; radius: 3"
-      ></a-entity>
-
-      <!-- 环境 -->
-      <a-entity environment="preset: forest; dressingAmount: 1000"></a-entity>
-
-      <!-- 灯光 -->
-      <a-entity light="type: ambient; color: #BBB; intensity: 0.5"></a-entity>
-      <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-5 5 5"></a-entity>
-
-      <!-- 地面 -->
-      <a-plane
-        position="0 0 0"
-        rotation="-90 0 0"
-        width="100"
-        height="100"
-        color="#e0e0e0"
-        shadow
-      ></a-plane>
-
-      <!-- 天空 -->
-      <a-sky color="#87CEEB"></a-sky>
-    </a-scene>
-
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">3D UI 组件集合</h1>
+        
+        <!-- 3D 文字墙 -->
+        <section class="word-wall-section">
+            <h2 class="section-title">3D 文字墙</h2>
+            <div class="word-wall-3d" id="wordWall3D">
+                <!-- 文字墙内容将通过JS动态生成 -->
+            </div>
+        </section>
+        
+        <!-- 3D 列表 -->
+        <section class="list-3d-section">
+            <h2 class="section-title">3D 列表</h2>
+            <div class="list-3d" id="list3D">
+                <!-- 列表内容将通过JS动态生成 -->
+            </div>
+        </section>
+        
+        <!-- 3D 菜单 -->
+        <section class="menu-3d-section">
+            <h2 class="section-title">3D 菜单</h2>
+            <div class="menu-3d" id="menu3D">
+                <!-- 菜单内容将通过JS动态生成 -->
+            </div>
+        </section>
+        
+        <!-- 3D 卡片 -->
+        <section class="cards-3d-section">
+            <h2 class="section-title">3D 卡片</h2>
+            <div class="cards-grid-3d" id="cardsGrid3D">
+                <!-- 卡片内容将通过JS动态生成 -->
+            </div>
+        </section>
+        
+        <!-- 3D 表格 -->
+        <section class="table-3d-section">
+            <h2 class="section-title">3D 表格</h2>
+            <div class="table-3d" id="table3D">
+                <!-- 表格内容将通过JS动态生成 -->
+            </div>
+        </section>
+        
+        <!-- 3D 进度条 -->
+        <section class="progress-3d-section">
+            <h2 class="section-title">3D 进度条</h2>
+            <div class="progress-container-3d" id="progress3D">
+                <!-- 进度条内容将通过JS动态生成 -->
+            </div>
+        </section>
+    </div>
+    
     <!-- 控制面板 -->
-    <div id="ui">
-      <h1>🌐 环网可视化</h1>
-
-      <div class="control-group">
-        <label>节点数量</label>
-        <select id="nodeCount">
-          <option value="6">6 个节点</option>
-          <option value="8" selected>8 个节点</option>
-          <option value="10">10 个节点</option>
-          <option value="12">12 个节点</option>
-        </select>
-      </div>
-
-      <div class="control-group">
-        <label>拓扑结构</label>
-        <select id="topology">
-          <option value="ring">单环</option>
-          <option value="dual-ring">双环</option>
-          <option value="mesh">网状</option>
-        </select>
-      </div>
-
-      <div class="control-group">
-        <label>数据流动</label>
-        <select id="dataFlow">
-          <option value="clockwise">顺时针</option>
-          <option value="counterclockwise" selected>逆时针</option>
-        </select>
-      </div>
-
-      <button id="refresh">刷新网络</button>
-      <button id="simulateFault">模拟故障</button>
-      <button id="enterVR" style="background: #673ab7">进入 VR 模式</button>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value" id="onlineNodes">8/8</div>
-          <div class="stat-label">在线节点</div>
+    <div class="controls">
+        <div class="control-group">
+            <label class="control-label">3D 深度: <span id="depthValue">1.0</span></label>
+            <input type="range" min="0.5" max="2" step="0.1" value="1" class="control-slider" id="depthSlider">
         </div>
-        <div class="stat">
-          <div class="stat-value" id="linkStatus">100%</div>
-          <div class="stat-label">链路状态</div>
+        
+        <div class="control-group">
+            <label class="control-label">动画速度: <span id="speedValue">1.0</span>x</label>
+            <input type="range" min="0.5" max="2" step="0.1" value="1" class="control-slider" id="speedSlider">
         </div>
-      </div>
+        
+        <div class="control-group">
+            <button class="control-btn" id="resetBtn">重置所有动画</button>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn" id="toggleBtn">切换自动动画</button>
+        </div>
+    </div>
+    
+    <!-- 3D 工具提示 -->
+    <div class="tooltip-3d" id="tooltip3D">
+        <div class="tooltip-title" id="tooltipTitle">工具提示标题</div>
+        <div class="tooltip-content" id="tooltipContent">工具提示内容</div>
     </div>
 
     <script>
-      // 环网组件
-      AFRAME.registerComponent('ring-network', {
-        schema: {
-          nodeCount: {type: 'number', default: 8},
-          radius: {type: 'number', default: 3},
-          topology: {type: 'string', default: 'ring'},
-          dataFlow: {type: 'string', default: 'counterclockwise'}
-        },
-
-        init: function () {
-          // 获取 Three.js 对象
-          this.object3D = this.el.object3D
-          this.scene = this.el.sceneEl.object3D
-
-          // 网络元素
-          this.nodes = []
-          this.links = []
-          this.dataParticles = []
-
-          // 创建网络
-          this.createNetwork()
-
-          // 添加事件监听
-          this.setupEventListeners()
-        },
-
-        update: function (oldData) {
-          // 如果配置改变，重新创建网络
-          if (
-            oldData.nodeCount !== this.data.nodeCount ||
-            oldData.topology !== this.data.topology
-          ) {
-            this.clearNetwork()
-            this.createNetwork()
-          }
-        },
-
-        tick: function (time) {
-          // 更新动画
-          this.updateAnimations(time)
-        },
-
-        createNetwork: function () {
-          const nodeCount = this.data.nodeCount
-          const radius = this.data.radius
-
-          // 创建节点
-          for (let i = 0; i < nodeCount; i++) {
-            this.createNode(i, radius)
-          }
-
-          // 创建连接
-          this.createLinks()
-
-          // 创建数据粒子
-          this.createDataParticles()
-        },
-
-        createNode: function (index, radius) {
-          // 计算节点位置
-          const angle = (index / this.data.nodeCount) * Math.PI * 2
-          const x = Math.cos(angle) * radius
-          const z = Math.sin(angle) * radius
-
-          // 随机状态
-          const status = Math.random() > 0.8 ? 'warning' : 'healthy'
-          const color = status === 'healthy' ? 0x4285f4 : 0xff9800
-
-          // 使用 Three.js 创建球体
-          const geometry = new THREE.SphereGeometry(0.3, 16, 16)
-          const material = new THREE.MeshStandardMaterial({
-            color: color,
-            metalness: 0.3,
-            roughness: 0.4
-          })
-
-          const sphere = new THREE.Mesh(geometry, material)
-          sphere.position.set(x, 0, z)
-          sphere.castShadow = true
-
-          // 保存节点信息
-          sphere.userData = {
-            type: 'node',
-            id: index,
-            status: status
-          }
-
-          // 添加到场景
-          this.object3D.add(sphere)
-          this.nodes.push(sphere)
-
-          // 创建节点标签
-          this.createNodeLabel(sphere, index)
-
-          return sphere
-        },
-
-        createNodeLabel: function (node, index) {
-          // 创建文本标签
-          const canvas = document.createElement('canvas')
-          const context = canvas.getContext('2d')
-          canvas.width = 256
-          canvas.height = 128
-
-          // 绘制文本
-          context.fillStyle = 'rgba(0, 0, 0, 0)'
-          context.fillRect(0, 0, canvas.width, canvas.height)
-
-          context.font = 'bold 40px Arial'
-          context.fillStyle = '#333333'
-          context.textAlign = 'center'
-          context.textBaseline = 'middle'
-          context.fillText(`N${index + 1}`, canvas.width / 2, canvas.height / 2)
-
-          // 创建纹理
-          const texture = new THREE.CanvasTexture(canvas)
-          const spriteMaterial = new THREE.SpriteMaterial({
-            map: texture,
-            transparent: true
-          })
-
-          const sprite = new THREE.Sprite(spriteMaterial)
-          sprite.scale.set(2, 1, 1)
-          sprite.position.y = 0.8
-          node.add(sprite)
-        },
-
-        createLinks: function () {
-          const nodeCount = this.data.nodeCount
-
-          // 根据拓扑类型创建连接
-          switch (this.data.topology) {
-            case 'ring':
-              this.createRingLinks()
-              break
-            case 'dual-ring':
-              this.createDualRingLinks()
-              break
-            case 'mesh':
-              this.createMeshLinks()
-              break
-          }
-        },
-
-        createRingLinks: function () {
-          for (let i = 0; i < this.nodes.length; i++) {
-            const nextIndex = (i + 1) % this.nodes.length
-            this.createLink(i, nextIndex)
-          }
-        },
-
-        createDualRingLinks: function () {
-          // 主环
-          for (let i = 0; i < this.nodes.length; i++) {
-            const nextIndex = (i + 1) % this.nodes.length
-            this.createLink(i, nextIndex, 0x4285f4, 0.8)
-          }
-
-          // 备用环
-          for (let i = 0; i < this.nodes.length; i++) {
-            const nextIndex = (i + 2) % this.nodes.length
-            this.createLink(i, nextIndex, 0x9c27b0, 0.4)
-          }
-        },
-
-        createMeshLinks: function () {
-          for (let i = 0; i < this.nodes.length; i++) {
-            for (let j = i + 1; j < this.nodes.length; j++) {
-              if (Math.random() > 0.6) {
-                // 40%的连接概率
-                this.createLink(i, j, 0x4285f4, Math.random() * 0.3 + 0.2)
-              }
-            }
-          }
-        },
-
-        createLink: function (fromIndex, toIndex, color = 0x4285f4, opacity = 0.7) {
-          const fromNode = this.nodes[fromIndex]
-          const toNode = this.nodes[toIndex]
-
-          if (!fromNode || !toNode) return
-
-          // 创建曲线路径
-          const points = []
-          const fromPos = fromNode.position.clone()
-          const toPos = toNode.position.clone()
-
-          // 添加中间控制点，使连接线呈弧形
-          const midPoint = fromPos.clone().lerp(toPos, 0.5)
-          midPoint.y += 1
-
-          points.push(fromPos)
-          points.push(midPoint)
-          points.push(toPos)
-
-          const curve = new THREE.CatmullRomCurve3(points)
-          const curvePoints = curve.getPoints(20)
-
-          // 创建连接线几何体
-          const geometry = new THREE.BufferGeometry().setFromPoints(curvePoints)
-          const material = new THREE.LineBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: opacity,
-            linewidth: 2
-          })
-
-          const line = new THREE.Line(geometry, material)
-          line.userData = {
-            type: 'link',
-            from: fromIndex,
-            to: toIndex
-          }
-
-          this.object3D.add(line)
-          this.links.push(line)
-        },
-
-        createDataParticles: function () {
-          for (let i = 0; i < 8; i++) {
-            // 8个数据粒子
-            const geometry = new THREE.SphereGeometry(0.1, 8, 8)
-            const material = new THREE.MeshBasicMaterial({
-              color: 0x00ff00
-            })
-
-            const particle = new THREE.Mesh(geometry, material)
-            particle.visible = false
-            particle.userData = {
-              type: 'particle',
-              speed: 0.01 + Math.random() * 0.005,
-              progress: Math.random(),
-              linkIndex: Math.floor(Math.random() * this.links.length)
-            }
-
-            this.object3D.add(particle)
-            this.dataParticles.push(particle)
-          }
-        },
-
-        updateAnimations: function (time) {
-          const timeInSeconds = time / 1000
-
-          // 节点浮动动画
-          this.nodes.forEach((node, index) => {
-            const floatHeight = Math.sin(timeInSeconds + index) * 0.2
-            node.position.y = floatHeight
-
-            // 节点自转
-            node.rotation.y += 0.01
-          })
-
-          // 数据粒子动画
-          this.animateDataParticles(timeInSeconds)
-        },
-
-        animateDataParticles: function (time) {
-          this.dataParticles.forEach(particle => {
-            if (particle.userData.linkIndex >= this.links.length) {
-              particle.visible = false
-              return
-            }
-
-            const link = this.links[particle.userData.linkIndex]
-            if (!link || !link.geometry.attributes.position) {
-              particle.visible = false
-              return
-            }
-
-            // 沿连接线移动粒子
-            particle.userData.progress += particle.userData.speed
-            if (particle.userData.progress > 1) {
-              particle.userData.progress = 0
-              particle.userData.linkIndex = Math.floor(Math.random() * this.links.length)
-              return
-            }
-
-            // 根据数据流方向调整进度
-            let progress = particle.userData.progress
-            if (this.data.dataFlow === 'clockwise') {
-              progress = 1 - particle.userData.progress
-            }
-
-            // 计算粒子位置
-            const positions = link.geometry.attributes.position.array
-            const pointCount = positions.length / 3
-            const pointIndex = Math.floor(progress * (pointCount - 1))
-
-            if (pointIndex >= 0 && pointIndex < pointCount) {
-              const x = positions[pointIndex * 3]
-              const y = positions[pointIndex * 3 + 1]
-              const z = positions[pointIndex * 3 + 2]
-
-              particle.position.set(x, y, z)
-              particle.visible = true
-            }
-          })
-        },
-
-        clearNetwork: function () {
-          // 移除所有节点
-          this.nodes.forEach(node => {
-            this.object3D.remove(node)
-            node.geometry.dispose()
-            node.material.dispose()
-          })
-
-          // 移除所有连接
-          this.links.forEach(link => {
-            this.object3D.remove(link)
-            link.geometry.dispose()
-            link.material.dispose()
-          })
-
-          // 移除所有粒子
-          this.dataParticles.forEach(particle => {
-            this.object3D.remove(particle)
-            particle.geometry.dispose()
-            particle.material.dispose()
-          })
-
-          this.nodes = []
-          this.links = []
-          this.dataParticles = []
-        },
-
-        setupEventListeners: function () {
-          // 监听 A-Frame 的鼠标事件
-          this.el.addEventListener('click', event => {
-            const target = event.detail.intersection.object
-
-            if (target.userData && target.userData.type === 'node') {
-              this.handleNodeClick(target)
-            }
-          })
-        },
-
-        handleNodeClick: function (node) {
-          console.log('点击了节点:', node.userData.id)
-
-          // 切换节点颜色
-          if (node.material.color.getHex() === 0x4285f4) {
-            node.material.color.setHex(0xff0000)
-          } else {
-            node.material.color.setHex(0x4285f4)
-          }
-
-          // 更新 UI
-          this.updateUI()
-        },
-
-        updateUI: function () {
-          const healthyNodes = this.nodes.filter(
-            node => node.material.color.getHex() === 0x4285f4
-          ).length
-
-          document.getElementById(
-            'onlineNodes'
-          ).textContent = `${healthyNodes}/${this.nodes.length}`
-
-          document.getElementById('linkStatus').textContent = `${Math.round(
-            (healthyNodes / this.nodes.length) * 100
-          )}%`
+        // 注册 GSAP 插件
+        gsap.registerPlugin(ScrollTrigger);
+        
+        // 全局变量
+        let globalDepth = 1.0;
+        let globalSpeed = 1.0;
+        let autoAnimation = true;
+        let tooltipTimeout;
+        
+        // 初始化函数
+        function init3DUI() {
+            initWordWall();
+            initList3D();
+            initMenu3D();
+            initCards3D();
+            initTable3D();
+            initProgress3D();
+            initControls();
+            initScrollAnimations();
+            initTooltips();
         }
-      })
-
-      // 网络管理器组件
-      AFRAME.registerComponent('network-manager', {
-        init: function () {
-          this.network = document.getElementById('network-container')
-
-          // 设置 UI 事件监听
-          this.setupUIListeners()
-        },
-
-        setupUIListeners: function () {
-          // 节点数量控制
-          document.getElementById('nodeCount').addEventListener('change', e => {
-            this.network.setAttribute('ring-network', 'nodeCount', e.target.value)
-          })
-
-          // 拓扑结构控制
-          document.getElementById('topology').addEventListener('change', e => {
-            this.network.setAttribute('ring-network', 'topology', e.target.value)
-          })
-
-          // 数据流向控制
-          document.getElementById('dataFlow').addEventListener('change', e => {
-            this.network.setAttribute('ring-network', 'dataFlow', e.target.value)
-          })
-
-          // 刷新网络
-          document.getElementById('refresh').addEventListener('click', () => {
-            const nodeCount = document.getElementById('nodeCount').value
-            this.network.setAttribute('ring-network', 'nodeCount', nodeCount)
-          })
-
-          // 模拟故障
-          document.getElementById('simulateFault').addEventListener('click', () => {
-            this.simulateNetworkFault()
-          })
-
-          // 进入 VR 模式
-          document.getElementById('enterVR').addEventListener('click', () => {
-            if (AFRAME.utils.device.isVR()) {
-              this.enterVRMode()
-            } else {
-              alert('您的设备不支持 VR 模式')
-            }
-          })
-        },
-
-        simulateNetworkFault: function () {
-          const network = this.network.components['ring-network']
-
-          if (network && network.nodes.length > 0) {
-            // 随机选择一个节点设置为故障状态
-            const randomIndex = Math.floor(Math.random() * network.nodes.length)
-            const node = network.nodes[randomIndex]
-
-            // 将节点颜色改为红色
-            node.material.color.setHex(0xff0000)
-
-            // 更新 UI
-            network.updateUI()
-          }
-        },
-
-        enterVRMode: function () {
-          const scene = document.querySelector('a-scene')
-
-          if (scene.hasAttribute('vr-mode-ui')) {
-            scene.setAttribute('vr-mode-ui', 'enabled', true)
-          }
-
-          // 进入 VR 模式
-          if (scene.enterVR) {
-            scene.enterVR()
-          }
+        
+        // 3D 文字墙
+        function initWordWall() {
+            const wordWall = document.getElementById('wordWall3D');
+            const words = [
+                { text: 'HTML5', subtitle: '标记语言' },
+                { text: 'CSS3', subtitle: '样式表' },
+                { text: 'JavaScript', subtitle: '编程语言' },
+                { text: 'React', subtitle: 'UI框架' },
+                { text: 'Vue.js', subtitle: '渐进式框架' },
+                { text: 'Angular', subtitle: '完整框架' },
+                { text: 'TypeScript', subtitle: '类型安全' },
+                { text: 'Node.js', subtitle: '后端运行' },
+                { text: 'Python', subtitle: '通用语言' },
+                { text: 'Java', subtitle: '企业级' },
+                { text: 'C++', subtitle: '高性能' },
+                { text: 'Go', subtitle: '并发编程' },
+                { text: 'Rust', subtitle: '内存安全' },
+                { text: 'Swift', subtitle: '苹果开发' },
+                { text: 'Kotlin', subtitle: '安卓开发' },
+                { text: 'Dart', subtitle: 'Flutter' }
+            ];
+            
+            words.forEach((word, index) => {
+                const wordItem = document.createElement('div');
+                wordItem.className = 'word-item-3d';
+                wordItem.innerHTML = `
+                    <span class="word-text">${word.text}</span>
+                    <span class="word-subtitle">${word.subtitle}</span>
+                `;
+                
+                // 设置初始3D变换
+                const x = (index % 4 - 1.5) * 5;
+                const y = Math.floor(index / 4 - 1) * 5;
+                gsap.set(wordItem, {
+                    rotationX: -10,
+                    rotationY: x,
+                    z: y * 2,
+                    opacity: 0
+                });
+                
+                wordWall.appendChild(wordItem);
+                
+                // 鼠标悬停效果
+                wordItem.addEventListener('mouseenter', () => {
+                    gsap.to(wordItem, {
+                        duration: 0.3,
+                        scale: 1.1,
+                        rotationX: 0,
+                        rotationY: 0,
+                        z: 30 * globalDepth,
+                        ease: "back.out(1.7)"
+                    });
+                    
+                    showTooltip(wordItem, word.text, `这是一个关于${word.text}的示例，${word.subtitle}`);
+                });
+                
+                wordItem.addEventListener('mouseleave', () => {
+                    gsap.to(wordItem, {
+                        duration: 0.3,
+                        scale: 1,
+                        rotationX: -10,
+                        rotationY: x,
+                        z: y * 2,
+                        ease: "power2.out"
+                    });
+                    
+                    hideTooltip();
+                });
+                
+                // 点击事件
+                wordItem.addEventListener('click', () => {
+                    gsap.to(wordItem, {
+                        duration: 0.2,
+                        scale: 0.95,
+                        ease: "power2.in",
+                        onComplete: () => {
+                            gsap.to(wordItem, {
+                                duration: 0.3,
+                                scale: 1,
+                                ease: "back.out(1.7)"
+                            });
+                        }
+                    });
+                    
+                    console.log(`点击了: ${word.text}`);
+                });
+            });
+            
+            // 文字墙入场动画
+            gsap.to('.word-item-3d', {
+                duration: 1,
+                opacity: 1,
+                rotationX: 0,
+                rotationY: 0,
+                z: 0,
+                stagger: 0.05,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: '.word-wall-section',
+                    start: 'top 80%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
         }
-      })
-
-      // 页面加载完成后初始化
-      document.addEventListener('DOMContentLoaded', () => {
-        // 自动添加网络管理器组件到场景
-        const scene = document.querySelector('a-scene')
-        scene.setAttribute('network-manager', '')
-
-        console.log('A-Frame + Three.js 环网可视化已加载')
-      })
+        
+        // 3D 列表
+        function initList3D() {
+            const list3D = document.getElementById('list3D');
+            const listItems = [
+                { title: '项目规划', description: '确定项目目标和范围', status: '已完成' },
+                { title: 'UI设计', description: '创建用户界面和体验设计', status: '进行中' },
+                { title: '前端开发', description: '实现用户界面和交互逻辑', status: '进行中' },
+                { title: '后端开发', description: '构建服务器端逻辑和API', status: '未开始' },
+                { title: '测试部署', description: '质量保证和产品发布', status: '未开始' }
+            ];
+            
+            listItems.forEach((item, index) => {
+                const listItem = document.createElement('div');
+                listItem.className = 'list-item-3d';
+                listItem.innerHTML = `
+                    <div class="list-index">${index + 1}</div>
+                    <div class="list-content">
+                        <div class="list-title">${item.title}</div>
+                        <div class="list-description">${item.description}</div>
+                    </div>
+                    <div class="list-badge">${item.status}</div>
+                `;
+                
+                // 设置初始状态
+                gsap.set(listItem, {
+                    x: -100,
+                    opacity: 0
+                });
+                
+                list3D.appendChild(listItem);
+                
+                // 悬停效果
+                listItem.addEventListener('mouseenter', () => {
+                    gsap.to(listItem, {
+                        duration: 0.3,
+                        x: 20,
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        ease: "power2.out"
+                    });
+                });
+                
+                listItem.addEventListener('mouseleave', () => {
+                    gsap.to(listItem, {
+                        duration: 0.3,
+                        x: 0,
+                        backgroundColor: 'rgba(30, 41, 59, 0.7)',
+                        ease: "power2.out"
+                    });
+                });
+            });
+            
+            // 列表入场动画
+            gsap.to('.list-item-3d', {
+                duration: 0.8,
+                x: 0,
+                opacity: 1,
+                stagger: 0.1,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: '.list-3d-section',
+                    start: 'top 80%'
+                }
+            });
+        }
+        
+        // 3D 菜单
+        function initMenu3D() {
+            const menu3D = document.getElementById('menu3D');
+            const menuItems = [
+                { icon: '🏠', text: '首页' },
+                { icon: '📱', text: '产品' },
+                { icon: '💼', text: '服务' },
+                { icon: '📚', text: '文档' },
+                { icon: '👥', text: '团队' },
+                { icon: '📞', text: '联系' }
+            ];
+            
+            menuItems.forEach((item, index) => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'menu-item-3d';
+                if (index === 0) menuItem.classList.add('active');
+                menuItem.innerHTML = `
+                    <span class="menu-icon">${item.icon}</span>
+                    <span class="menu-text">${item.text}</span>
+                `;
+                
+                // 设置初始状态
+                gsap.set(menuItem, {
+                    y: 50,
+                    opacity: 0,
+                    rotationY: index % 2 === 0 ? -30 : 30
+                });
+                
+                menu3D.appendChild(menuItem);
+                
+                // 点击事件
+                menuItem.addEventListener('click', () => {
+                    // 移除其他菜单项的激活状态
+                    document.querySelectorAll('.menu-item-3d').forEach(el => {
+                        el.classList.remove('active');
+                    });
+                    
+                    // 添加当前激活状态
+                    menuItem.classList.add('active');
+                    
+                    // 点击动画
+                    gsap.to(menuItem, {
+                        duration: 0.2,
+                        scale: 0.95,
+                        ease: "power2.in",
+                        onComplete: () => {
+                            gsap.to(menuItem, {
+                                duration: 0.3,
+                                scale: 1,
+                                ease: "back.out(1.7)"
+                            });
+                        }
+                    });
+                    
+                    console.log(`选择了: ${item.text}`);
+                });
+            });
+            
+            // 菜单入场动画
+            gsap.to('.menu-item-3d', {
+                duration: 0.8,
+                y: 0,
+                opacity: 1,
+                rotationY: 0,
+                stagger: 0.1,
+                ease: "back.out(1.7)",
+                scrollTrigger: {
+                    trigger: '.menu-3d-section',
+                    start: 'top 80%'
+                }
+            });
+        }
+        
+        // 3D 卡片
+        function initCards3D() {
+            const cardsGrid = document.getElementById('cardsGrid3D');
+            const cards = [
+                { icon: '🎨', title: '设计系统', description: '完整的设计规范和组件库，确保产品视觉一致性。', stats: { users: '1.2K', projects: '45' } },
+                { icon: '⚡', title: '性能优化', description: '优化加载速度和响应时间，提升用户体验。', stats: { users: '2.5K', projects: '78' } },
+                { icon: '🔒', title: '安全防护', description: '多层次安全防护机制，保护用户数据和隐私。', stats: { users: '3.1K', projects: '92' } },
+                { icon: '📊', title: '数据分析', description: '实时数据监控和分析，提供决策支持。', stats: { users: '1.8K', projects: '56' } }
+            ];
+            
+            cards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card-3d';
+                cardElement.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-icon">${card.icon}</div>
+                        <div class="card-title">${card.title}</div>
+                    </div>
+                    <div class="card-description">${card.description}</div>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${card.stats.users}</div>
+                            <div class="stat-label">用户</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${card.stats.projects}</div>
+                            <div class="stat-label">项目</div>
+                        </div>
+                    </div>
+                `;
+                
+                // 设置初始状态
+                gsap.set(cardElement, {
+                    y: 100,
+                    opacity: 0,
+                    rotationX: 20
+                });
+                
+                cardsGrid.appendChild(cardElement);
+                
+                // 自动浮动动画
+                if (autoAnimation) {
+                    gsap.to(cardElement, {
+                        duration: 3 + index,
+                        y: -10,
+                        ease: "sine.inOut",
+                        repeat: -1,
+                        yoyo: true
+                    });
+                }
+            });
+            
+            // 卡片入场动画
+            gsap.to('.card-3d', {
+                duration: 1,
+                y: 0,
+                opacity: 1,
+                rotationX: 0,
+                stagger: 0.2,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: '.cards-3d-section',
+                    start: 'top 80%'
+                }
+            });
+        }
+        
+        // 3D 表格
+        function initTable3D() {
+            const table3D = document.getElementById('table3D');
+            const tableData = [
+                { name: '项目A', progress: 85, status: 'active', date: '2024-03-15' },
+                { name: '项目B', progress: 60, status: 'pending', date: '2024-03-20' },
+                { name: '项目C', progress: 100, status: 'active', date: '2024-03-10' },
+                { name: '项目D', progress: 30, status: 'pending', date: '2024-03-25' },
+                { name: '项目E', progress: 95, status: 'active', date: '2024-03-05' }
+            ];
+            
+            // 创建表头
+            const tableHeader = document.createElement('div');
+            tableHeader.className = 'table-header-3d';
+            tableHeader.innerHTML = `
+                <div class="table-cell">项目名称</div>
+                <div class="table-cell">进度</div>
+                <div class="table-cell">状态</div>
+                <div class="table-cell">截止日期</div>
+            `;
+            table3D.appendChild(tableHeader);
+            
+            // 创建表格行
+            tableData.forEach((row, index) => {
+                const tableRow = document.createElement('div');
+                tableRow.className = 'table-row-3d';
+                tableRow.innerHTML = `
+                    <div class="table-cell">${row.name}</div>
+                    <div class="table-cell">${row.progress}%</div>
+                    <div class="table-cell">
+                        <span class="status-badge status-${row.status}">${row.status === 'active' ? '进行中' : '待处理'}</span>
+                    </div>
+                    <div class="table-cell">${row.date}</div>
+                `;
+                
+                // 设置初始状态
+                gsap.set(tableRow, {
+                    y: 50,
+                    opacity: 0
+                });
+                
+                table3D.appendChild(tableRow);
+            });
+            
+            // 表格行入场动画
+            gsap.to('.table-row-3d', {
+                duration: 0.6,
+                y: 0,
+                opacity: 1,
+                stagger: 0.1,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: '.table-3d-section',
+                    start: 'top 80%'
+                }
+            });
+        }
+        
+        // 3D 进度条
+        function initProgress3D() {
+            const progress3D = document.getElementById('progress3D');
+            const progressData = [
+                { label: '前端开发', value: 85 },
+                { label: '后端开发', value: 60 },
+                { label: 'UI设计', value: 95 },
+                { label: '测试部署', value: 40 }
+            ];
+            
+            progressData.forEach((item, index) => {
+                const progressItem = document.createElement('div');
+                progressItem.className = 'progress-item-3d';
+                progressItem.innerHTML = `
+                    <div class="progress-label">
+                        <span>${item.label}</span>
+                        <span>${item.value}%</span>
+                    </div>
+                    <div class="progress-bar-3d">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                `;
+                
+                progress3D.appendChild(progressItem);
+                
+                // 延迟设置进度
+                setTimeout(() => {
+                    const fill = progressItem.querySelector('.progress-fill');
+                    gsap.to(fill, {
+                        duration: 2,
+                        width: `${item.value}%`,
+                        ease: "power3.out",
+                        delay: index * 0.3
+                    });
+                }, 500);
+            });
+        }
+        
+        // 工具提示
+        function initTooltips() {
+            const tooltip = document.getElementById('tooltip3D');
+            
+            // 鼠标移动时更新工具提示位置
+            document.addEventListener('mousemove', (e) => {
+                gsap.to(tooltip, {
+                    duration: 0.1,
+                    x: e.clientX + 15,
+                    y: e.clientY + 15
+                });
+            });
+        }
+        
+        function showTooltip(element, title, content) {
+            const tooltip = document.getElementById('tooltip3D');
+            const tooltipTitle = document.getElementById('tooltipTitle');
+            const tooltipContent = document.getElementById('tooltipContent');
+            
+            tooltipTitle.textContent = title;
+            tooltipContent.textContent = content;
+            
+            // 清除之前的定时器
+            if (tooltipTimeout) clearTimeout(tooltipTimeout);
+            
+            // 显示工具提示
+            tooltip.classList.add('active');
+            
+            // 设置自动隐藏
+            tooltipTimeout = setTimeout(() => {
+                hideTooltip();
+            }, 3000);
+        }
+        
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip3D');
+            tooltip.classList.remove('active');
+        }
+        
+        // 控制面板
+        function initControls() {
+            const depthSlider = document.getElementById('depthSlider');
+            const speedSlider = document.getElementById('speedSlider');
+            const depthValue = document.getElementById('depthValue');
+            const speedValue = document.getElementById('speedValue');
+            const resetBtn = document.getElementById('resetBtn');
+            const toggleBtn = document.getElementById('toggleBtn');
+            
+            // 深度控制
+            depthSlider.addEventListener('input', (e) => {
+                globalDepth = parseFloat(e.target.value);
+                depthValue.textContent = globalDepth.toFixed(1);
+                updateAll3DDepth();
+            });
+            
+            // 速度控制
+            speedSlider.addEventListener('input', (e) => {
+                globalSpeed = parseFloat(e.target.value);
+                speedValue.textContent = globalSpeed.toFixed(1);
+                gsap.globalTimeScale(globalSpeed);
+            });
+            
+            // 重置按钮
+            resetBtn.addEventListener('click', () => {
+                ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+                initScrollAnimations();
+                gsap.globalTimeScale(1);
+                speedSlider.value = 1;
+                speedValue.textContent = '1.0';
+                globalSpeed = 1;
+                
+                // 重置进度条
+                document.querySelectorAll('.progress-fill').forEach(fill => {
+                    gsap.set(fill, { width: '0%' });
+                    const parent = fill.parentElement.parentElement;
+                    const value = parseInt(parent.querySelector('.progress-label span:last-child').textContent);
+                    gsap.to(fill, {
+                        duration: 2,
+                        width: `${value}%`,
+                        ease: "power3.out"
+                    });
+                });
+            });
+            
+            // 切换自动动画
+            toggleBtn.addEventListener('click', () => {
+                autoAnimation = !autoAnimation;
+                toggleBtn.textContent = autoAnimation ? '关闭自动动画' : '开启自动动画';
+                
+                // 控制卡片浮动动画
+                document.querySelectorAll('.card-3d').forEach((card, index) => {
+                    if (autoAnimation) {
+                        gsap.to(card, {
+                            duration: 3 + index,
+                            y: -10,
+                            ease: "sine.inOut",
+                            repeat: -1,
+                            yoyo: true
+                        });
+                    } else {
+                        gsap.killTweensOf(card);
+                        gsap.to(card, {
+                            duration: 0.5,
+                            y: 0,
+                            ease: "power2.out"
+                        });
+                    }
+                });
+            });
+        }
+        
+        // 更新所有3D深度
+        function updateAll3DDepth() {
+            // 更新文字墙
+            document.querySelectorAll('.word-item-3d').forEach((item, index) => {
+                const x = (index % 4 - 1.5) * 5 * globalDepth;
+                const y = Math.floor(index / 4 - 1) * 5 * globalDepth;
+                gsap.set(item, {
+                    rotationY: x,
+                    z: y * 2
+                });
+            });
+            
+            // 更新菜单项的悬停效果
+            document.querySelectorAll('.menu-item-3d').forEach(item => {
+                item.style.setProperty('--hover-depth', `${20 * globalDepth}px`);
+            });
+            
+            // 更新卡片的悬停效果
+            document.querySelectorAll('.card-3d').forEach(item => {
+                item.style.setProperty('--hover-depth', `${30 * globalDepth}px`);
+            });
+        }
+        
+        // 滚动动画
+        function initScrollAnimations() {
+            // 每个部分的入场动画
+            const sections = document.querySelectorAll('section');
+            
+            sections.forEach((section, index) => {
+                gsap.from(section, {
+                    scrollTrigger: {
+                        trigger: section,
+                        start: 'top 80%',
+                        end: 'bottom 20%',
+                        toggleActions: 'play none none reverse'
+                    },
+                    duration: 1,
+                    y: 50,
+                    opacity: 0,
+                    ease: "power3.out",
+                    delay: index * 0.1
+                });
+            });
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', init3DUI);
+        
+        // 控制台信息
+        console.log('🎮 3D UI 组件集合已加载');
+        console.log('📦 包含以下组件：');
+        console.log('   1. 3D 文字墙 - 网格布局，悬停3D效果');
+        console.log('   2. 3D 列表 - 垂直列表，悬停突出');
+        console.log('   3. 3D 菜单 - 水平菜单，点击激活');
+        console.log('   4. 3D 卡片 - 信息卡片，浮动动画');
+        console.log('   5. 3D 表格 - 数据表格，行悬停效果');
+        console.log('   6. 3D 进度条 - 动态进度，3D透视');
+        console.log('');
+        console.log('⚙️ 控制面板功能：');
+        console.log('   • 3D深度: 控制3D效果的强度');
+        console.log('   • 动画速度: 调整整体动画速度');
+        console.log('   • 重置: 重置所有动画到初始状态');
+        console.log('   • 自动动画: 开关卡片的浮动动画');
     </script>
-  </body>
+</body>
 </html>

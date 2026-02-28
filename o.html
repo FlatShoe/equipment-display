@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>曲面显示效果 - Three.js Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        padding: 20px;
+      }
+
+      .curved-screen {
+        width: 100%;
+        max-width: 1200px;
+        height: 600px;
+        position: relative;
+        transform-style: preserve-3d;
+        perspective: 2000px;
+        margin: 0 auto;
+      }
+
+      .screen-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .screen-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, rgba(255, 255, 255, 0.95), rgba(245, 245, 245, 0.98));
+        border-radius: 20px;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3), 0 0 0 15px rgba(40, 40, 40, 0.8),
+          inset 0 0 30px rgba(255, 255, 255, 0.5);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+        overflow: hidden;
+        transform: perspective(1500px) rotateY(calc(var(--curve, 0.3) * 20deg));
+        transition: transform 0.8s ease;
+      }
+
+      .screen-content:hover {
+        --curve: 0.5;
+      }
+
+      .screen-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.05) 0%,
+          rgba(0, 0, 0, 0.02) 20%,
+          transparent 50%,
+          rgba(0, 0, 0, 0.02) 80%,
+          rgba(0, 0, 0, 0.05) 100%
+        );
+        pointer-events: none;
+        border-radius: 20px;
+      }
+
+      .screen-content::after {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        border: 2px solid rgba(0, 150, 255, 0.1);
+        border-radius: 15px;
+        pointer-events: none;
+      }
+
+      h1 {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        background: linear-gradient(45deg, #0066cc, #0099ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-align: center;
+        text-shadow: 0 5px 15px rgba(0, 102, 204, 0.2);
+        position: relative;
+        z-index: 2;
+      }
+
+      h1::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 25%;
+        width: 50%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #0099ff, transparent);
+        border-radius: 2px;
+      }
+
+      .subtitle {
+        font-size: 1.5rem;
+        color: #666;
+        margin-bottom: 30px;
+        text-align: center;
+        max-width: 800px;
+        line-height: 1.6;
+        position: relative;
+        z-index: 2;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        width: 100%;
+        max-width: 1000px;
+        margin-top: 40px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .info-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        transform: perspective(500px) rotateY(calc(var(--card-index) * 2deg));
+        position: relative;
+        overflow: hidden;
+      }
+
+      .info-card:hover {
+        transform: perspective(500px) rotateY(calc(var(--card-index) * 2deg)) translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      }
+
+      .info-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #0066cc, #00ccff);
+      }
+
+      .card-title {
+        font-size: 1.4rem;
+        color: #0066cc;
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+
+      .card-content {
+        color: #555;
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+
+      .stats {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 50px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 20px;
+        min-width: 150px;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        transform: perspective(800px) rotateX(5deg);
+        transition: all 0.4s ease;
+      }
+
+      .stat-item:hover {
+        transform: perspective(800px) rotateX(0deg) translateY(-10px);
+        background: rgba(255, 255, 255, 0.95);
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #0066cc;
+        margin-bottom: 10px;
+        text-shadow: 0 3px 10px rgba(0, 102, 204, 0.2);
+      }
+
+      .stat-label {
+        font-size: 1rem;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .screen-reflection {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.1) 30%,
+          rgba(255, 255, 255, 0.05) 50%,
+          transparent 100%
+        );
+        pointer-events: none;
+        border-radius: 20px;
+        mix-blend-mode: overlay;
+        z-index: 3;
+      }
+
+      .glow-effect {
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        top: -50%;
+        left: -50%;
+        background: radial-gradient(
+          circle at center,
+          rgba(0, 150, 255, 0.15) 0%,
+          rgba(0, 150, 255, 0.1) 20%,
+          rgba(0, 150, 255, 0.05) 40%,
+          transparent 70%
+        );
+        z-index: 1;
+        pointer-events: none;
+        animation: glow 8s ease-in-out infinite alternate;
+      }
+
+      .curve-controls {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .control-group {
+        margin-bottom: 10px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+      }
+
+      input[type='range'] {
+        width: 200px;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px) rotateX(5deg);
+        }
+        50% {
+          transform: translateY(-20px) rotateX(5deg);
+        }
+      }
+
+      @keyframes glow {
+        0% {
+          opacity: 0.6;
+          transform: rotate(0deg);
+        }
+        100% {
+          opacity: 0.9;
+          transform: rotate(180deg);
+        }
+      }
+
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .curved-screen {
+          height: 500px;
+          padding: 10px;
+        }
+
+        h1 {
+          font-size: 2.5rem;
+        }
+
+        .subtitle {
+          font-size: 1.2rem;
+          padding: 0 10px;
+        }
+
+        .info-grid {
+          grid-template-columns: 1fr;
+          padding: 0 10px;
+        }
+
+        .stats {
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .curve-controls {
+          position: relative;
+          bottom: auto;
+          right: auto;
+          margin-top: 30px;
+          width: 100%;
+          max-width: 300px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="curved-screen">
+      <div class="glow-effect"></div>
+      <div class="screen-container">
+        <div class="screen-content" id="screenContent">
+          <h1>Three.js 曲面显示屏</h1>
+          <p class="subtitle">
+            这是一个模拟曲面显示效果的 HTML 页面，专为 Three.js CSS3D
+            示例设计。可以观察曲线变形和透视效果。
+          </p>
+
+          <div class="info-grid">
+            <div class="info-card" style="--card-index: -2">
+              <div class="card-title">CSS 3D 变换</div>
+              <div class="card-content">
+                通过 CSS 的 transform 属性实现曲面效果，使用 perspective 和 rotateY 创建3D视觉深度。
+              </div>
+            </div>
+
+            <div class="info-card" style="--card-index: -1">
+              <div class="card-title">响应式设计</div>
+              <div class="card-content">
+                页面完全响应式，适配各种屏幕尺寸。在 iframe 中也能保持良好显示效果。
+              </div>
+            </div>
+
+            <div class="info-card" style="--card-index: 0">
+              <div class="card-title">交互效果</div>
+              <div class="card-content">
+                卡片悬浮效果、动态统计数据和可调节的曲线参数，提供丰富的交互体验。
+              </div>
+            </div>
+
+            <div class="info-card" style="--card-index: 1">
+              <div class="card-title">视觉层次</div>
+              <div class="card-content">
+                渐变背景、阴影、发光效果和反射图层，增强曲面显示屏的真实感和深度。
+              </div>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-value" id="fpsCounter">60</div>
+              <div class="stat-label">FPS</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-value" id="curveValue">30%</div>
+              <div class="stat-label">曲率</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-value">100%</div>
+              <div class="stat-label">性能</div>
+            </div>
+          </div>
+
+          <div class="screen-reflection"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="curve-controls">
+      <div class="control-group">
+        <label for="curveSlider">曲率控制: <span id="curvePercent">30%</span></label>
+        <input type="range" id="curveSlider" min="0" max="60" value="30" />
+      </div>
+
+      <div class="control-group">
+        <label for="perspectiveSlider">透视深度: <span id="perspectiveValue">1500px</span></label>
+        <input type="range" id="perspectiveSlider" min="500" max="3000" value="1500" step="100" />
+      </div>
+
+      <button
+        id="resetBtn"
+        style="
+          margin-top: 10px;
+          padding: 8px 15px;
+          background: #0066cc;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+        "
+      >
+        重置设置
+      </button>
+    </div>
+
+    <script>
+      // 获取DOM元素
+      const screenContent = document.getElementById('screenContent')
+      const curveSlider = document.getElementById('curveSlider')
+      const perspectiveSlider = document.getElementById('perspectiveSlider')
+      const curvePercent = document.getElementById('curvePercent')
+      const perspectiveValue = document.getElementById('perspectiveValue')
+      const curveValue = document.getElementById('curveValue')
+      const resetBtn = document.getElementById('resetBtn')
+      const fpsCounter = document.getElementById('fpsCounter')
+
+      // FPS计数器
+      let frameCount = 0
+      let lastTime = performance.now()
+
+      function updateFPS() {
+        frameCount++
+        const currentTime = performance.now()
+        const elapsed = currentTime - lastTime
+
+        if (elapsed >= 1000) {
+          // 每秒更新一次
+          const fps = Math.round((frameCount * 1000) / elapsed)
+          fpsCounter.textContent = fps
+          frameCount = 0
+          lastTime = currentTime
+        }
+
+        requestAnimationFrame(updateFPS)
+      }
+
+      // 更新曲线效果
+      function updateCurve() {
+        const curveIntensity = curveSlider.value
+        const perspective = perspectiveSlider.value
+
+        // 计算旋转角度（基于滑块值）
+        const rotation = (curveIntensity - 30) * 0.5 // -15° 到 +15°
+
+        // 更新CSS变量
+        screenContent.style.setProperty('--curve', curveIntensity / 100)
+        screenContent.style.transform = `perspective(${perspective}px) rotateY(${rotation}deg)`
+
+        // 更新显示值
+        curvePercent.textContent = `${curveIntensity}%`
+        perspectiveValue.textContent = `${perspective}px`
+        curveValue.textContent = `${curveIntensity}%`
+
+        // 更新卡片的旋转效果
+        const cards = document.querySelectorAll('.info-card')
+        cards.forEach((card, index) => {
+          const cardIndex = parseInt(card.style.getPropertyValue('--card-index') || 0)
+          const newRotation = cardIndex + (curveIntensity - 30) * 0.1
+          card.style.transform = `perspective(500px) rotateY(${newRotation}deg)`
+        })
+      }
+
+      // 重置设置
+      function resetSettings() {
+        curveSlider.value = 30
+        perspectiveSlider.value = 1500
+        updateCurve()
+      }
+
+      // 事件监听
+      curveSlider.addEventListener('input', updateCurve)
+      perspectiveSlider.addEventListener('input', updateCurve)
+      resetBtn.addEventListener('click', resetSettings)
+
+      // 鼠标移动效果
+      document.addEventListener('mousemove', e => {
+        const x = e.clientX / window.innerWidth - 0.5
+        const y = e.clientY / window.innerHeight - 0.5
+
+        // 轻微跟随鼠标的视差效果
+        screenContent.style.transform += ` rotateX(${y * 0.5}deg) rotateY(${x * 0.5}deg)`
+      })
+
+      // 初始化
+      updateCurve()
+      updateFPS()
+
+      // 添加键盘控制
+      document.addEventListener('keydown', e => {
+        let curve = parseInt(curveSlider.value)
+        let perspective = parseInt(perspectiveSlider.value)
+
+        switch (e.key) {
+          case 'ArrowUp':
+            curve = Math.min(60, curve + 5)
+            curveSlider.value = curve
+            updateCurve()
+            break
+          case 'ArrowDown':
+            curve = Math.max(0, curve - 5)
+            curveSlider.value = curve
+            updateCurve()
+            break
+          case 'ArrowRight':
+            perspective = Math.min(3000, perspective + 100)
+            perspectiveSlider.value = perspective
+            updateCurve()
+            break
+          case 'ArrowLeft':
+            perspective = Math.max(500, perspective - 100)
+            perspectiveSlider.value = perspective
+            updateCurve()
+            break
+          case 'r':
+          case 'R':
+            resetSettings()
+            break
+        }
+      })
+
+      // 页面加载完成后的动画
+      window.addEventListener('load', () => {
+        screenContent.style.transition = 'transform 1.5s ease'
+        setTimeout(() => {
+          screenContent.style.transition = 'transform 0.8s ease'
+        }, 1500)
+      })
+
+      // 控制台提示
+      console.log('曲面显示屏已加载')
+      console.log('使用键盘控制:')
+      console.log('- 上下箭头: 调整曲率')
+      console.log('- 左右箭头: 调整透视深度')
+      console.log('- R键: 重置设置')
+    </script>
+  </body>
+</html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>交换机状态卡片 - 3D玻璃拟态</title>
+    <title>小型3D卡片</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -17,21 +17,33 @@
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
 
+      /* 完全透明背景 */
       body {
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        background: transparent !important; /* 透明背景 */
+        overflow: hidden;
         padding: 20px;
-        overflow-x: hidden;
       }
 
-      /* 卡片容器 */
+      /* 主容器 */
+      .container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        perspective: 1500px;
+      }
+
+      /* 卡片容器 - 小型尺寸 */
       .box {
         position: relative;
-        width: 400px;
-        height: 250px;
+        width: 70vw; /* 从80vw改为70vw */
+        height: 70vh; /* 从80vh改为70vh */
         transform-style: preserve-3d;
         transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         cursor: pointer;
@@ -50,10 +62,10 @@
 
       /* 背景元素 */
       .bg {
-        background: linear-gradient(45deg, #3498db, #2ecc71);
-        border-radius: 20px;
-        transform: translateZ(15px);
-        filter: blur(15px);
+        background: linear-gradient(45deg, rgba(52, 152, 219, 0.3), rgba(46, 204, 113, 0.3));
+        border-radius: 25px; /* 从30px改为25px */
+        transform: translateZ(20px); /* 从25px改为20px */
+        filter: blur(20px); /* 从25px改为20px */
         opacity: 0.4;
       }
 
@@ -64,15 +76,16 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(15px);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        transform: translateZ(20px);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px); /* 从20px改为15px */
+        border-radius: 25px; /* 从30px改为25px */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        transform: translateZ(30px); /* 从35px改为30px */
         z-index: 0;
         display: flex;
-        padding: 25px;
+        padding: 30px; /* 从40px改为30px */
+        transition: all 0.3s ease;
       }
 
       /* 左侧信息区域 */
@@ -81,256 +94,342 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        padding-right: 20px;
+        padding-right: 25px; /* 从30px改为25px */
         z-index: 2;
-        transform: translateZ(25px);
+        transform: translateZ(35px); /* 从40px改为35px */
       }
 
       /* 设备名称 */
       .device-name {
-        margin-bottom: 25px;
+        margin-bottom: 30px; /* 从40px改为30px */
       }
 
       .device-name h2 {
         color: #fff;
-        font-size: 2.2rem;
+        font-size: 3rem; /* 从3.5rem改为3rem */
         font-weight: 600;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        margin-bottom: 12px; /* 从15px改为12px */
       }
 
       /* 状态信息 */
       .status-info {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 25px; /* 从30px改为25px */
       }
 
       .status-item {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px; /* 从15px改为12px */
       }
 
       .status-label {
         color: rgba(255, 255, 255, 0.9);
-        font-size: 1.1rem;
+        font-size: 1.8rem; /* 从2rem改为1.8rem */
         font-weight: 500;
+        min-width: 140px; /* 从160px改为140px */
       }
 
       .status-value {
-        font-size: 1.2rem;
+        font-size: 2.1rem; /* 从2.4rem改为2.1rem */
         font-weight: 600;
-        padding: 5px 12px;
-        border-radius: 15px;
-        min-width: 90px;
+        padding: 10px 20px; /* 从12px 25px改为10px 20px */
+        border-radius: 18px; /* 从20px改为18px */
+        min-width: 200px; /* 从240px改为200px */
         text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px; /* 从15px改为12px */
       }
 
       /* 温度状态 */
       .temperature-value {
-        background: rgba(52, 152, 219, 0.3);
+        background: rgba(52, 152, 219, 0.2);
         color: #3498db;
-        border: 1px solid rgba(52, 152, 219, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
+        border: 1px solid rgba(52, 152, 219, 0.3);
       }
 
       .temperature-help {
         color: rgba(52, 152, 219, 0.8);
-        font-size: 0.9rem;
+        font-size: 1.2rem; /* 从1.4rem改为1.2rem */
         cursor: help;
       }
 
       /* 环网状态 */
       .network-value {
-        background: rgba(46, 204, 113, 0.3);
+        background: rgba(46, 204, 113, 0.2);
         color: #2ecc71;
-        border: 1px solid rgba(46, 204, 113, 0.4);
+        border: 1px solid rgba(46, 204, 113, 0.3);
       }
 
       /* 右侧设备图标区域 */
       .device-section {
-        width: 140px;
+        width: 200px; /* 从240px改为200px */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         z-index: 2;
-        transform: translateZ(25px);
+        transform: translateZ(35px); /* 从40px改为35px */
       }
 
       .device-icon {
-        font-size: 5rem;
+        font-size: 7rem; /* 从8rem改为7rem */
         color: #fff;
-        margin-bottom: 15px;
-        filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+        margin-bottom: 15px; /* 从20px改为15px */
+        filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4));
       }
 
       /* 阈值配置按钮 */
       .threshold-btn {
         position: absolute;
-        top: 25px;
-        right: 25px;
+        top: 30px; /* 从40px改为30px */
+        right: 30px; /* 从40px改为30px */
         z-index: 3;
-        transform: translateZ(30px);
+        transform: translateZ(45px); /* 从50px改为45px */
       }
 
       .threshold-btn button {
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: rgba(255, 255, 255, 0.9);
-        padding: 8px 16px;
-        border-radius: 20px;
+        padding: 12px 25px; /* 从15px 30px改为12px 25px */
+        border-radius: 18px; /* 从20px改为18px */
         cursor: pointer;
-        font-size: 0.9rem;
+        font-size: 1.2rem; /* 从1.4rem改为1.2rem */
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 8px; /* 从10px改为8px */
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
       }
 
       .threshold-btn button:hover {
-        background: rgba(52, 152, 219, 0.3);
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        background: rgba(52, 152, 219, 0.2);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       }
 
       /* 悬停效果 */
       .box:hover {
-        transform: translateY(-10px) rotateX(5deg) rotateY(5deg);
+        transform: translateY(-12px) rotateX(5deg) rotateY(5deg) scale(1.02); /* 从-15px改为-12px */
       }
 
       .box:hover .card {
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), 0 0 20px rgba(52, 152, 219, 0.2),
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 25px rgba(52, 152, 219, 0.2),
           inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
 
-      /* 背景装饰 */
+      /* 移除所有背景装饰元素 */
       .bg-elements {
+        display: none;
+      }
+
+      /* 3D视角控制 */
+      .view-controls {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: -1;
+        bottom: 30px;
+        right: 30px;
+        z-index: 100;
+        display: flex;
+        gap: 15px;
       }
 
-      .bg-element {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(60px);
-        opacity: 0.2;
+      .view-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
       }
 
-      .bg-element:nth-child(1) {
-        width: 300px;
-        height: 300px;
-        background: #3498db;
-        top: 10%;
-        left: 10%;
-        animation: float 20s infinite ease-in-out;
-      }
-
-      .bg-element:nth-child(2) {
-        width: 400px;
-        height: 400px;
-        background: #2ecc71;
-        bottom: 10%;
-        right: 10%;
-        animation: float 25s infinite ease-in-out reverse;
-      }
-
-      @keyframes float {
-        0%,
-        100% {
-          transform: translate(0, 0) rotate(0deg);
-        }
-        25% {
-          transform: translate(20px, -30px) rotate(90deg);
-        }
-        50% {
-          transform: translate(-15px, 20px) rotate(180deg);
-        }
-        75% {
-          transform: translate(30px, 10px) rotate(270deg);
-        }
+      .view-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
       }
 
       /* 响应式设计 */
-      @media (max-width: 480px) {
+      @media (max-width: 1200px) {
         .box {
-          width: 100%;
-          max-width: 350px;
-          height: 220px;
+          width: 75vw; /* 从85vw改为75vw */
+          height: 75vh; /* 从85vh改为75vh */
         }
 
         .device-name h2 {
-          font-size: 1.8rem;
-        }
-
-        .device-icon {
-          font-size: 4rem;
+          font-size: 2.5rem; /* 从2.8rem改为2.5rem */
         }
 
         .status-label {
-          font-size: 1rem;
+          font-size: 1.5rem; /* 从1.6rem改为1.5rem */
         }
 
         .status-value {
-          font-size: 1.1rem;
-          min-width: 80px;
+          font-size: 1.7rem; /* 从1.9rem改为1.7rem */
+          min-width: 180px; /* 从200px改为180px */
+        }
+
+        .device-icon {
+          font-size: 6rem; /* 从6.5rem改为6rem */
+        }
+      }
+
+      @media (max-width: 768px) {
+        .card {
+          flex-direction: column;
+          padding: 25px; /* 从30px改为25px */
+        }
+
+        .info-section {
+          padding-right: 0;
+          margin-bottom: 25px; /* 从30px改为25px */
+        }
+
+        .device-section {
+          width: 100%;
+        }
+
+        .device-icon {
+          font-size: 4.5rem; /* 从5rem改为4.5rem */
+        }
+
+        .status-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px; /* 从8px改为6px */
+        }
+
+        .status-value {
+          min-width: 100%;
+        }
+
+        .view-controls {
+          bottom: 20px;
+          right: 20px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .view-btn {
+          padding: 10px 20px;
+          font-size: 1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .box {
+          width: 85vw; /* 从90vw改为85vw */
+          height: 85vh;
+        }
+
+        .device-name h2 {
+          font-size: 2rem; /* 从2.2rem改为2rem */
+        }
+
+        .status-label {
+          font-size: 1.2rem; /* 从1.3rem改为1.2rem */
+        }
+
+        .status-value {
+          font-size: 1.3rem; /* 从1.5rem改为1.3rem */
+        }
+
+        .device-icon {
+          font-size: 4rem; /* 从4rem保持 */
+        }
+
+        .threshold-btn button {
+          padding: 10px 20px;
+          font-size: 1rem; /* 从1.1rem改为1rem */
         }
       }
     </style>
   </head>
   <body>
-    <!-- 背景装饰 -->
-    <div class="bg-elements">
-      <div class="bg-element"></div>
-      <div class="bg-element"></div>
-    </div>
+    <!-- 背景装饰已移除 -->
 
-    <!-- 交换机状态卡片 -->
-    <div class="box">
-      <div class="elements bg"></div>
-      <div class="card">
-        <!-- 左侧信息区域 -->
-        <div class="info-section">
-          <div class="device-name">
-            <h2>交换机</h2>
-          </div>
+    <div class="container">
+      <!-- 交换机状态卡片 -->
+      <div class="box" id="mainCard">
+        <div class="elements bg"></div>
+        <div class="card">
+          <!-- 左侧信息区域 -->
+          <div class="info-section">
+            <div class="device-name">
+              <h2>交换机监控</h2>
+            </div>
 
-          <div class="status-info">
-            <div class="status-item">
-              <span class="status-label">温度：</span>
-              <div class="status-value temperature-value">
-                30℃
-                <i
-                  class="fas fa-question-circle temperature-help"
-                  title="当前设备温度，正常范围为20-40℃"
-                ></i>
+            <div class="status-info">
+              <div class="status-item">
+                <span class="status-label">温度：</span>
+                <div class="status-value temperature-value" id="temperatureValue">
+                  30℃
+                  <i
+                    class="fas fa-question-circle temperature-help"
+                    title="当前设备温度，正常范围为20-40℃"
+                  ></i>
+                </div>
+              </div>
+
+              <div class="status-item">
+                <span class="status-label">环网状态：</span>
+                <div class="status-value network-value" id="networkStatus">正常</div>
+              </div>
+
+              <div class="status-item">
+                <span class="status-label">CPU使用率：</span>
+                <div
+                  class="status-value"
+                  style="
+                    background: rgba(231, 76, 60, 0.2);
+                    color: #e74c3c;
+                    border-color: rgba(231, 76, 60, 0.3);
+                  "
+                  id="cpuUsage"
+                >
+                  45%
+                </div>
+              </div>
+
+              <div class="status-item">
+                <span class="status-label">内存使用率：</span>
+                <div
+                  class="status-value"
+                  style="
+                    background: rgba(241, 196, 15, 0.2);
+                    color: #f1c40f;
+                    border-color: rgba(241, 196, 15, 0.3);
+                  "
+                  id="memoryUsage"
+                >
+                  68%
+                </div>
               </div>
             </div>
+          </div>
 
-            <div class="status-item">
-              <span class="status-label">环网状态：</span>
-              <div class="status-value network-value">正常</div>
+          <!-- 右侧设备图标区域 -->
+          <div class="device-section">
+            <i class="fas fa-server device-icon" id="deviceIcon"></i>
+            <div
+              class="status-value"
+              style="
+                background: rgba(155, 89, 182, 0.2);
+                color: #9b59b6;
+                border-color: rgba(155, 89, 182, 0.3);
+                font-size: 1.8rem; /* 从2rem改为1.8rem */
+              "
+              id="bandwidth"
+            >
+              850 Mbps
             </div>
           </div>
-        </div>
-
-        <!-- 右侧设备图标区域 -->
-        <div class="device-section">
-          <i class="fas fa-server device-icon"></i>
-        </div>
-
-        <!-- 阈值配置按钮 -->
-        <div class="elements threshold-btn">
-          <button id="thresholdBtn"><i class="fas fa-sliders-h"></i> 阈值配置</button>
         </div>
       </div>
     </div>
@@ -344,54 +443,121 @@
     <script>
       // 使用vanilla-tilt.js初始化3D倾斜效果
       VanillaTilt.init(document.querySelector('.box'), {
-        max: 20,
-        speed: 300,
+        max: 14, // 从20改为18 这个是 倾斜的最大角度
+        speed: 400,
         glare: true,
-        'max-glare': 0.1,
-        scale: 1.05
+        'max-glare': 0.2,
+        scale:.95 // 从1.05改为0.95，稍微缩小以适应小型卡片
       })
 
       // 获取阈值配置按钮
       const thresholdBtn = document.getElementById('thresholdBtn')
+      const mainCard = document.getElementById('mainCard')
 
-      // 阈值配置按钮点击事件
-      thresholdBtn.addEventListener('click', function () {
-        alert('温度阈值：30℃\n环网监控：正常\n\n点击确定后可以配置参数...')
-      })
+        const modal = document.createElement('div')
+        document.body.appendChild(modal)
 
-      // 添加卡片点击翻转功能
-      const box = document.querySelector('.box')
-      box.addEventListener('click', function (e) {
-        // 如果点击的是阈值配置按钮，则不触发翻转
-        if (e.target.closest('button')) {
-          return
+        const tempSlider = document.getElementById('tempSlider')
+        const cpuSlider = document.getElementById('cpuSlider')
+        const tempValue = document.getElementById('tempValue')
+        const cpuValue = document.getElementById('cpuValue')
+        const saveBtn = document.getElementById('saveBtn')
+        const closeBtn = document.getElementById('closeBtn')
+
+
+      // 卡片旋转功能
+      function rotateCard(direction) {
+        const card = document.querySelector('.box')
+        let rotation = ''
+
+        switch (direction) {
+          case 'front':
+            rotation = 'rotateX(0deg) rotateY(0deg)'
+            break
+          case 'back':
+            rotation = 'rotateX(0deg) rotateY(180deg)'
+            break
+          case 'left':
+            rotation = 'rotateX(0deg) rotateY(90deg)'
+            break
+          case 'right':
+            rotation = 'rotateX(0deg) rotateY(-90deg)'
+            break
         }
 
-        // 如果已经翻转，则恢复
-        if (this.style.transform && this.style.transform.includes('rotateY(180deg)')) {
-          this.style.transform = this.style.transform.replace('rotateY(180deg)', 'rotateY(0deg)')
-        } else {
-          // 获取当前变换
-          const currentTransform = this.style.transform || ''
-          // 添加翻转
-          this.style.transform = currentTransform + ' rotateY(180deg)'
-        }
-      })
+        card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        card.style.transform = rotation
 
-      // 初始动画
-      window.addEventListener('load', function () {
+        // 暂停vanilla-tilt的效果
+        VanillaTilt.init(card, {
+          max: 0,
+          speed: 400,
+          glare: true,
+          'max-glare': 0.2,
+          scale: 1.05
+        })
+
+        // 3秒后恢复倾斜效果
         setTimeout(() => {
-          box.style.opacity = '0'
-          box.style.transform = 'translateY(30px) rotateX(10deg)'
+          VanillaTilt.init(card, {
+            max: 18,
+            speed: 400,
+            glare: true,
+            'max-glare': 0.2,
+            scale: 1.05
+          })
+        }, 3000)
+      }
 
-          setTimeout(() => {
-            box.style.transition =
-              'opacity 0.5s ease, transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            box.style.opacity = '1'
-            box.style.transform = ''
-          }, 100)
-        }, 300)
-      })
+      // 模拟实时数据更新
+      function updateRealTimeData() {
+        // 随机生成温度数据 (20-40度)
+        const temp = Math.floor(Math.random() * 5) + 28
+        document.getElementById(
+          'temperatureValue'
+        ).innerHTML = `${temp}℃ <i class="fas fa-question-circle temperature-help" title="当前设备温度，正常范围为20-40℃"></i>`
+
+        // 随机生成CPU使用率
+        const cpu = Math.floor(Math.random() * 20) + 40
+        document.getElementById('cpuUsage').textContent = `${cpu}%`
+
+        // 随机生成内存使用率
+        const memory = Math.floor(Math.random() * 15) + 60
+        document.getElementById('memoryUsage').textContent = `${memory}%`
+
+        // 随机生成网络状态
+        const networkStatus = Math.random() > 0.1 ? '正常' : '异常'
+        const networkColor = networkStatus === '正常' ? '#2ecc71' : '#e74c3c'
+        const networkBg =
+          networkStatus === '正常' ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)'
+        const networkBorder =
+          networkStatus === '正常' ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)'
+
+        const networkEl = document.getElementById('networkStatus')
+        networkEl.textContent = networkStatus
+        networkEl.style.color = networkColor
+        networkEl.style.background = networkBg
+        networkEl.style.borderColor = networkBorder
+
+        // 随机生成带宽数据
+        const bandwidth = Math.floor(Math.random() * 200) + 700
+        document.getElementById('bandwidth').textContent = `${bandwidth} Mbps`
+
+        // 如果温度超过40度，改变图标颜色
+        if (temp > 40) {
+          document.getElementById('deviceIcon').style.color = '#e74c3c'
+        } else if (temp > 35) {
+          document.getElementById('deviceIcon').style.color = '#f39c12'
+        } else {
+          document.getElementById('deviceIcon').style.color = '#fff'
+        }
+      }
+
+      // 每3秒更新一次数据
+      setInterval(updateRealTimeData, 3000)
+
+      // 页面加载后立即更新一次数据
+      window.addEventListener('load', updateRealTimeData)
     </script>
   </body>
 </html>

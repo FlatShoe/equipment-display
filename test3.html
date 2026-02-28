@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- 前面的样式和head内容保持不变 -->
+  </head>
+  <body>
+    <div class="loading" id="loading">
+      <div class="loader"></div>
+      <p id="loading-text" style="color: #666">初始化中...</p>
+    </div>
+
+    <!-- 使用最新稳定版本的Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/renderers/CSS3DRenderer.js"></script>
+    <!-- 添加GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/loaders/GLTFLoader.js"></script>
+
+    <script>
+      // 全局变量
+      let scene, camera, renderer, cssRenderer, controls
+      let screens = []
+      let frameCount = 0
+      let lastTime = performance.now()
+      let fps = 0
+      let gltfLoader = null
+      let roomModel = null
+
+      // 屏幕配置
+      const screenConfigs = [
+        {
+          title: '主屏幕 - 交换机监控',
+          url: 'http://127.0.0.1:5501/test.html',
+          size: {width: 1400, height: 900},
+          position: {x: 0, y: 100, z: -1500},
+          rotation: {x: 0, y: 0, z: 0},
+          hoverScale: 1.05
+        },
+        {
+          title: '副屏 - 百度地图',
+          url: 'https://map.baidu.com',
+          size: {width: 1000, height: 700},
+          position: {x: -1200, y: 300, z: -1200},
+          rotation: {x: 0, y: 0.3, z: 0},
+          hoverScale: 1.05
+        },
+        {
+          title: '数据屏 - 百度新闻',
+          url: 'https://news.baidu.com',
+          size: {width: 800, height: 500},
+          position: {x: 1000, y: -100, z: -1300},
+          rotation: {x: 0, y: -0.3, z: 0},
+          hoverScale: 1.05
+        },
+        {
+          title: '监控屏 - 百度图片',
+          url: 'https://image.baidu.com',
+          size: {width: 600, height: 400},
+          position: {x: 0, y: -300, z: -1000},
+          rotation: {x: 0.3, y: 0, z: 0},
+          hoverScale: 1.05
+        }
+      ]
+
+      // 视图预设
+      const viewPresets = [
+        {
+          position: {x: 0, y: 0, z: 1200},
+          target: {x: 0, y: 0, z: -1000},
+          label: '主视角'
+        },
+        {
+          position: {x: 0, y: 1500, z: 0},
+          target: {x: 0, y: 0, z: -1000},
+          label: '俯视'
+        },
+        {
+          position: {x: 1500, y: 0, z: 0},
+          target: {x: 0, y: 0, z: -1000},
+          label: '侧视'
+        }
+      ]
+
+      // 模型配置
+      const modelConfig = {
+        url: 'http://localhost:9601/models/yyp.glb', // 替换为您的GLB模型路径
+        position: {x: 0, y: 0, z: 0},
+        scale: {x: 1, y: 1, z: 1},
+        rotation: {x: 0, y: 0, z: 0}
+      }
+
+      // 更新加载状态
+      function updateLoadingText(text) {
+        const loadingText = document.getElementById('loading-text')
+        if (loadingText) {
+          loadingText.textContent = text
+        }
+      }
+
+      // 初始化GLTFLoader
+      function initGLTFLoader() {
+        if (typeof THREE.GLTFLoader !== 'undefined') {
+          gltfLoader = new THREE.GLTFLoader()
+          console.log('✅ GLTFLoader初始化完成')
+          return true
+        } else {
+          console.error('❌ GLTFLoader未加载')
+          return false
+        }
+      }
+
+      // 加载GLB模型
+      function loadGLBModel() {
+        return new Promise((resolve, reject) => {
+          if (!gltfLoader) {
+            reject(new Error('GLTFLoader未初始化'))
+            return
+          }
+
+          updateLoadingText('加载房间模型...')
+
+          gltfLoader.load(
+            modelConfig.url,
+            // 加载成功回调
+            function (gltf) {
+              console.log('✅ GLB模型加载成功')
+
+              roomModel = gltf.scene
+
+              // 设置模型位置、缩放和旋转
+              roomModel.position.set(
+                modelConfig.position.x,
+                modelConfig.position.y,
+                modelConfig.position.z
+              )
+
+              roomModel.scale.set(modelConfig.scale.x, modelConfig.scale.y, modelConfig.scale.z)
+
+              roomModel.rotation.set(
+                modelConfig.rotation.x,
+                modelConfig.rotation.y,
+                modelConfig.rotation.z
+              )
+
+              // 设置模型名称用于调试
+              roomModel.name = 'RoomModel'
+
+              // 遍历模型的所有子对象，优化显示
+              roomModel.traverse(function (child) {
+                if (child.isMesh) {
+                  // 启用投射和接收阴影
+                  child.castShadow = true
+                  child.receiveShadow = true
+
+                  // 优化材质
+                  if (child.material) {
+                    // 设置材质属性以获得更好的性能
+                    child.material.side = THREE.DoubleSide
+
+                    // 如果模型有透明部分，确保正确设置
+                    if (child.material.transparent) {
+                      child.material.transparent = true
+                      child.material.depthWrite = false
+                    }
+                  }
+                }
+              })
+
+              // 将模型添加到场景
+              scene.add(roomModel)
+
+              // 计算模型的边界框，用于调试和定位
+              const bbox = new THREE.Box3().setFromObject(roomModel)
+              const center = bbox.getCenter(new THREE.Vector3())
+              const size = bbox.getSize(new THREE.Vector3())
+
+              console.log('模型信息:', {
+                center: center,
+                size: size,
+                position: roomModel.position
+              })
+
+              resolve(roomModel)
+            },
+            // 加载进度回调
+            function (xhr) {
+              const percentComplete = (xhr.loaded / xhr.total) * 100
+              updateLoadingText(`加载模型: ${Math.round(percentComplete)}%`)
+              console.log('模型加载进度: ' + percentComplete + '%')
+            },
+            // 加载错误回调
+            function (error) {
+              console.error('❌ GLB模型加载失败:', error)
+              updateLoadingText('模型加载失败，使用默认房间框架')
+
+              // 即使模型加载失败，也创建默认房间框架
+              createRoomFrame()
+              resolve(null)
+            }
+          )
+        })
+      }
+
+      // 初始化Three.js
+      async function init() {
+        try {
+          updateLoadingText('检查Three.js加载...')
+
+          if (typeof THREE === 'undefined') {
+            throw new Error('Three.js 库加载失败')
+          }
+
+          updateLoadingText('初始化场景...')
+
+          // 创建场景
+          scene = new THREE.Scene()
+          // 设置RGB(239, 239, 239)背景色
+          scene.background = new THREE.Color(0xefefef)
+          // 调整雾效为相同颜色
+          scene.fog = new THREE.Fog(0xefefef, 1000, 5000)
+
+          // 创建相机
+          camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000)
+          camera.position.set(
+            viewPresets[0].position.x,
+            viewPresets[0].position.y,
+            viewPresets[0].position.z
+          )
+
+          updateLoadingText('创建WebGL渲染器...')
+
+          // 创建WebGL渲染器
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+            powerPreference: 'high-performance'
+          })
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+          renderer.setSize(window.innerWidth, window.innerHeight)
+          renderer.outputEncoding = THREE.sRGBEncoding
+          renderer.toneMapping = THREE.ACESFilmicToneMapping
+          renderer.toneMappingExposure = 1.0
+
+          // 启用阴影
+          renderer.shadowMap.enabled = true
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap
+
+          document.body.appendChild(renderer.domElement)
+
+          updateLoadingText('创建CSS3D渲染器...')
+
+          // 创建CSS3D渲染器
+          if (typeof THREE.CSS3DRenderer !== 'undefined') {
+            cssRenderer = new THREE.CSS3DRenderer()
+            cssRenderer.setSize(window.innerWidth, window.innerHeight)
+            cssRenderer.domElement.style.position = 'fixed'
+            cssRenderer.domElement.style.top = '0'
+            cssRenderer.domElement.style.left = '0'
+            cssRenderer.domElement.style.pointerEvents = 'none'
+            document.body.appendChild(cssRenderer.domElement)
+          }
+
+          updateLoadingText('添加控制器...')
+
+          // 添加轨道控制器
+          if (typeof THREE.OrbitControls !== 'undefined') {
+            controls = new THREE.OrbitControls(camera, renderer.domElement)
+            controls.target.set(
+              viewPresets[0].target.x,
+              viewPresets[0].target.y,
+              viewPresets[0].target.z
+            )
+            controls.enableDamping = true
+            controls.dampingFactor = 0.05
+            controls.minDistance = 300
+            controls.maxDistance = 5000
+          }
+
+          updateLoadingText('初始化模型加载器...')
+
+          // 初始化GLTF加载器
+          if (!initGLTFLoader()) {
+            console.warn('GLTFLoader初始化失败，将使用默认房间框架')
+          }
+
+          updateLoadingText('加载3D模型...')
+
+          // 尝试加载GLB模型
+          try {
+            await loadGLBModel()
+          } catch (error) {
+            console.error('模型加载错误:', error)
+            // 如果模型加载失败，创建默认房间框架
+            createRoomFrame()
+          }
+
+          // 如果模型加载失败或没有模型，创建默认房间框架
+          if (!roomModel) {
+            updateLoadingText('创建默认房间框架...')
+            createRoomFrame()
+          }
+
+          updateLoadingText('创建无边框屏幕...')
+
+          // 创建无边框屏幕
+          // createBorderlessScreens()
+
+          updateLoadingText('启动动画循环...')
+
+          // 启动动画循环
+          animate()
+
+          // 隐藏加载界面
+          setTimeout(() => {
+            const loading = document.getElementById('loading')
+            loading.style.opacity = '0'
+            setTimeout(() => {
+              loading.style.display = 'none'
+            }, 500)
+          }, 1000)
+
+          // 事件监听
+          window.addEventListener('resize', onWindowResize)
+
+          console.log('✅ 浅灰房间框架3D空间初始化完成')
+        } catch (error) {
+          console.error('初始化失败:', error)
+          updateLoadingText('初始化失败: ' + error.message)
+          document.getElementById('loading').innerHTML = `
+            <h2 style="color: #e74c3c;">加载失败</h2>
+            <p>${error.message}</p>
+            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 500;">
+                重新加载
+            </button>
+          `
+        }
+      }
+
+      // 创建房间框架（备用，当模型加载失败时使用）
+      function createRoomFrame() {
+        const roomWidth = 5000
+        const roomHeight = 3000
+        const roomDepth = 5000
+
+        const lineColor = 0xaaaaaa
+        const lineOpacity = 0.4
+        const lineWidth = 1
+
+        // 创建材质
+        const lineMaterial = new THREE.LineBasicMaterial({
+          color: lineColor,
+          transparent: true,
+          opacity: lineOpacity,
+          linewidth: lineWidth
+        })
+
+        // 创建房间的12条边
+        const edges = []
+
+        // 定义房间的8个顶点
+        const vertices = [
+          // 地板顶点
+          new THREE.Vector3(-roomWidth / 2, -roomHeight / 2, -roomDepth / 2),
+          new THREE.Vector3(roomWidth / 2, -roomHeight / 2, -roomDepth / 2),
+          new THREE.Vector3(roomWidth / 2, -roomHeight / 2, roomDepth / 2),
+          new THREE.Vector3(-roomWidth / 2, -roomHeight / 2, roomDepth / 2),
+
+          // 天花板顶点
+          new THREE.Vector3(-roomWidth / 2, roomHeight / 2, -roomDepth / 2),
+          new THREE.Vector3(roomWidth / 2, roomHeight / 2, -roomDepth / 2),
+          new THREE.Vector3(roomWidth / 2, roomHeight / 2, roomDepth / 2),
+          new THREE.Vector3(-roomWidth / 2, roomHeight / 2, roomDepth / 2)
+        ]
+
+        // 定义12条边
+        const edgesIndices = [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 0], // 地板
+          [4, 5],
+          [5, 6],
+          [6, 7],
+          [7, 4], // 天花板
+          [0, 4],
+          [1, 5],
+          [2, 6],
+          [3, 7] // 垂直线
+        ]
+
+        // 创建所有边
+        edgesIndices.forEach(indices => {
+          const geometry = new THREE.BufferGeometry().setFromPoints([
+            vertices[indices[0]],
+            vertices[indices[1]]
+          ])
+          const line = new THREE.Line(geometry, lineMaterial)
+          scene.add(line)
+          edges.push(line)
+        })
+
+        // 添加简单的网格地板
+        const floorGridSize = roomWidth
+        const floorDivisions = 20
+        const floorGrid = new THREE.GridHelper(floorGridSize, floorDivisions, 0xcccccc, 0xdddddd)
+        floorGrid.material.opacity = 0.1
+        floorGrid.material.transparent = true
+        floorGrid.position.y = -roomHeight / 2
+        scene.add(floorGrid)
+
+        // 添加灯光
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+        scene.add(ambientLight)
+
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.6)
+        directionalLight1.position.set(roomWidth, roomHeight, -roomDepth)
+        directionalLight1.castShadow = true
+        scene.add(directionalLight1)
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3)
+        directionalLight2.position.set(-roomWidth, roomHeight / 2, roomDepth)
+        scene.add(directionalLight2)
+      }
+
+      // 其他函数保持不变...
+      // createBorderlessScreens, createScreen, onWindowResize, animate, switchView 等函数保持不变
+
+      // 页面加载完成后初始化
+      window.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 开始初始化浅灰房间框架3D空间...')
+        init()
+      })
+
+      // 处理页面卸载
+      window.addEventListener('beforeunload', () => {
+        if (renderer) {
+          renderer.dispose()
+        }
+      })
+    </script>
+  </body>
+</html>

@@ -1,192 +1,740 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
   <head>
-    <title>three.js css3d - mixed (CDN Version)</title>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
-    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>网格房错落大屏</title>
     <style>
-      body {
-        background-color: rgb(240, 240, 240);
+      * {
         margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: linear-gradient(135deg, #0a0a0f 0%, #151522 100%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        outline: none;
+      }
+
+      .loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0a0a0f 0%, #151522 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+      }
+
+      .loader {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top: 3px solid #00d2ff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .info-panel {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 20px;
+        color: white;
+        z-index: 10;
+        max-width: 300px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .info-panel h1 {
+        font-size: 24px;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #00d2ff;
+      }
+
+      .info-panel p {
+        font-size: 14px;
+        line-height: 1.5;
+        opacity: 0.8;
+      }
+
+      .controls {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10;
+        display: flex;
+        gap: 8px;
+      }
+
+      .control-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.3s;
+        backdrop-filter: blur(10px);
+      }
+
+      .control-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .control-btn.active {
+        background: rgba(0, 210, 255, 0.2);
+        border-color: rgba(0, 210, 255, 0.3);
+        color: #00d2ff;
+      }
+
+      .screen-label {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(20px);
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: white;
+        font-size: 12px;
+        font-weight: 500;
+        z-index: 100;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        white-space: nowrap;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .stats {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 15px;
+        color: white;
+        z-index: 10;
+        font-size: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
     </style>
   </head>
   <body>
-    <!-- 使用CDN版本 -->
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.164.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.164.0/examples/jsm/"
+    <div class="loading" id="loading">
+      <div class="loader"></div>
+      <h2 style="color: #00d2ff; margin-bottom: 10px">加载...</h2>
+      <p id="loading-text" style="color: #999">初始化中...</p>
+    </div>
+
+    <div class="info-panel">
+
+    </div>
+
+    <div class="controls">
+      <button class="control-btn active" onclick="switchView(0)">主视角</button>
+      <button class="control-btn" onclick="switchView(1)">俯视</button>
+      <button class="control-btn" onclick="switchView(2)">侧视</button>
+    </div>
+
+    <div class="stats">
+      <div id="stats">屏幕数量: 4 | 状态: 初始化中...</div>
+    </div>
+
+    <!-- 使用最新稳定版本的Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+
+    <script>
+      // 全局变量
+      let scene, camera, renderer, cssRenderer, controls
+      let screens = []
+      let frameCount = 0
+      let lastTime = performance.now()
+      let fps = 0
+
+      // 屏幕配置 - 4个屏幕，大小不一，高低不同
+      const screenConfigs = [
+        {
+          title: '主屏幕 - 交换机监控',
+          url: 'http://127.0.0.1:5501/test.html', // 这里放你的本地3D卡片地址
+          size: {width: 1400, height: 900}, // 最大的主屏幕
+          position: {x: 0, y: 100, z: -1500}, // 中心位置
+          rotation: {x: 0, y: 0, z: 0},
+          hoverScale: 1.05
+        },
+        {
+          title: '副屏 - 百度地图',
+          url: 'https://map.baidu.com',
+          size: {width: 1000, height: 700}, // 中等大小
+          position: {x: -1200, y: 300, z: -1200}, // 左侧，稍高
+          rotation: {x: 0, y: 0.3, z: 0}, // 稍微向内旋转
+          hoverScale: 1.05
+        },
+        {
+          title: '数据屏 - 百度新闻',
+          url: 'https://news.baidu.com',
+          size: {width: 800, height: 500}, // 较小
+          position: {x: 1000, y: -100, z: -1300}, // 右侧，较低
+          rotation: {x: 0, y: -0.3, z: 0}, // 稍微向内旋转
+          hoverScale: 1.05
+        },
+        {
+          title: '监控屏 - 百度图片',
+          url: 'https://image.baidu.com',
+          size: {width: 600, height: 400}, // 最小
+          position: {x: 0, y: -300, z: -1000}, // 下方，较近
+          rotation: {x: 0.3, y: 0, z: 0}, // 向上倾斜
+          hoverScale: 1.05
+        }
+      ]
+
+      // 视图预设
+      const viewPresets = [
+        {
+          position: {x: 0, y: 0, z: 1200},
+          target: {x: 0, y: 0, z: -1000},
+          label: '主视角'
+        },
+        {
+          position: {x: 0, y: 2000, z: 0},
+          target: {x: 0, y: 0, z: -1000},
+          label: '俯视'
+        },
+        {
+          position: {x: 2000, y: 0, z: 0},
+          target: {x: 0, y: 0, z: -1000},
+          label: '侧视'
+        }
+      ]
+
+      // 更新加载状态
+      function updateLoadingText(text) {
+        const loadingText = document.getElementById('loading-text')
+        if (loadingText) {
+          loadingText.textContent = text
         }
       }
-    </script>
 
-    <script type="module">
-      import * as THREE from 'three'
+      // 初始化Three.js
+      async function init() {
+        try {
+          updateLoadingText('检查Three.js加载...')
 
-      import {OrbitControls} from 'https://unpkg.com/three@0.164.0/examples/jsm/controls/OrbitControls.js'
-      import {
-        CSS3DRenderer,
-        CSS3DObject
-      } from 'https://unpkg.com/three@0.164.0/examples/jsm/renderers/CSS3DRenderer.js'
+          if (typeof THREE === 'undefined') {
+            throw new Error('Three.js 库加载失败')
+          }
 
-      let camera, scene, rendererCSS3D, rendererWebGL
-      let controls
+          updateLoadingText('初始化场景...')
 
-      init()
+          // 创建场景
+          scene = new THREE.Scene()
+          scene.background = new THREE.Color(0x0a0a0f)
+          scene.fog = new THREE.Fog(0x0a0a0f, 1000, 3000)
 
-      function init() {
-        const controlsDomElement = document.createElement('div')
-        controlsDomElement.style.position = 'absolute'
-        controlsDomElement.style.top = '0'
-        controlsDomElement.style.width = '100%'
-        controlsDomElement.style.height = '100%'
-        document.body.appendChild(controlsDomElement)
+          // 创建相机
+          camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000)
+          camera.position.set(
+            viewPresets[0].position.x,
+            viewPresets[0].position.y,
+            viewPresets[0].position.z
+          )
 
-        rendererCSS3D = new CSS3DRenderer()
-        rendererCSS3D.setSize(window.innerWidth, window.innerHeight)
-        rendererCSS3D.domElement.style.position = 'absolute'
-        rendererCSS3D.domElement.style.top = '0'
-        rendererCSS3D.domElement.style.left = '0'
-        rendererCSS3D.domElement.style.pointerEvents = 'none'
-        document.body.appendChild(rendererCSS3D.domElement)
+          updateLoadingText('创建WebGL渲染器...')
 
-        rendererWebGL = new THREE.WebGLRenderer({antialias: true, alpha: true})
-        rendererWebGL.domElement.style.position = 'absolute'
-        rendererWebGL.domElement.style.top = '0'
-        rendererWebGL.domElement.style.left = '0'
-        rendererWebGL.domElement.style.pointerEvents = 'none'
-        rendererWebGL.setPixelRatio(window.devicePixelRatio)
-        rendererWebGL.setSize(window.innerWidth, window.innerHeight)
-        rendererWebGL.toneMapping = THREE.NeutralToneMapping
-        rendererWebGL.setAnimationLoop(animate)
-        document.body.appendChild(rendererWebGL.domElement)
+          // 创建WebGL渲染器
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+            powerPreference: 'high-performance'
+          })
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+          renderer.setSize(window.innerWidth, window.innerHeight)
+          renderer.outputEncoding = THREE.sRGBEncoding
+          renderer.toneMapping = THREE.ACESFilmicToneMapping
+          renderer.toneMappingExposure = 1.0
+          renderer.shadowMap.enabled = true
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap
+          document.body.appendChild(renderer.domElement)
 
-        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000)
-        camera.position.set(-1000, 500, 1500)
+          updateLoadingText('创建CSS3D渲染器...')
 
-        scene = new THREE.Scene()
-        scene.background = new THREE.Color(0xf0f0f0)
+          // 创建CSS3D渲染器
+          if (typeof THREE.CSS3DRenderer !== 'undefined') {
+            cssRenderer = new THREE.CSS3DRenderer()
+            cssRenderer.setSize(window.innerWidth, window.innerHeight)
+            cssRenderer.domElement.style.position = 'fixed'
+            cssRenderer.domElement.style.top = '0'
+            cssRenderer.domElement.style.left = '0'
+            cssRenderer.domElement.style.pointerEvents = 'none'
+            document.body.appendChild(cssRenderer.domElement)
+          }
 
-        // Add room
-        const roomGeometry = new THREE.EdgesGeometry(
-          new THREE.BoxGeometry(4000, 2000, 4000, 10, 5, 10)
+          updateLoadingText('添加控制器...')
+
+          // 添加轨道控制器
+          if (typeof THREE.OrbitControls !== 'undefined') {
+            controls = new THREE.OrbitControls(camera, renderer.domElement)
+            controls.target.set(
+              viewPresets[0].target.x,
+              viewPresets[0].target.y,
+              viewPresets[0].target.z
+            )
+            controls.enableDamping = true
+            controls.dampingFactor = 0.05
+            controls.minDistance = 300
+            controls.maxDistance = 5000
+          }
+
+          updateLoadingText('创建网格房间...')
+
+          // 创建网格房间
+          createGridRoom()
+
+          updateLoadingText('创建无边框屏幕...')
+
+          // 创建无边框屏幕
+          createBorderlessScreens()
+
+          updateLoadingText('启动动画循环...')
+
+          // 启动动画循环
+          animate()
+
+          // 隐藏加载界面
+          setTimeout(() => {
+            const loading = document.getElementById('loading')
+            loading.style.opacity = '0'
+            setTimeout(() => {
+              loading.style.display = 'none'
+            }, 500)
+          }, 1000)
+
+          // 事件监听
+          window.addEventListener('resize', onWindowResize)
+
+          console.log('✅ 网格房大屏初始化完成')
+        } catch (error) {
+          console.error('初始化失败:', error)
+          updateLoadingText('初始化失败: ' + error.message)
+          document.getElementById('loading').innerHTML = `
+                    <h2 style="color: #ff6b6b;">加载失败</h2>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #00d2ff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 500;">
+                        重新加载
+                    </button>
+                `
+        }
+      }
+
+      // 创建网格房间
+      function createGridRoom() {
+        const roomSize = 3000
+        const gridSize = 100
+        const gridColor = 0x00d2ff
+        const gridOpacity = 0.1
+
+        // 创建地板网格
+        const floorGrid = new THREE.GridHelper(roomSize, roomSize / gridSize, gridColor, gridColor)
+        floorGrid.material.opacity = gridOpacity
+        floorGrid.material.transparent = true
+        floorGrid.position.y = -500
+        scene.add(floorGrid)
+
+        // 创建天花板网格
+        const ceilingGrid = floorGrid.clone()
+        ceilingGrid.position.y = 1500
+        scene.add(ceilingGrid)
+
+        // 创建后墙网格
+        const backWallGrid = new THREE.GridHelper(
+          roomSize,
+          roomSize / gridSize,
+          gridColor,
+          gridColor
         )
-        const roomMaterial = new THREE.LineBasicMaterial({
-          color: 0x000000,
-          opacity: 0.2,
-          transparent: true
+        backWallGrid.material.opacity = gridOpacity
+        backWallGrid.material.transparent = true
+        backWallGrid.rotation.x = Math.PI / 2
+        backWallGrid.position.z = -roomSize / 2
+        backWallGrid.position.y = 500
+        scene.add(backWallGrid)
+
+        // 创建左墙网格
+        const leftWallGrid = new THREE.GridHelper(
+          roomSize,
+          roomSize / gridSize,
+          gridColor,
+          gridColor
+        )
+        leftWallGrid.material.opacity = gridOpacity
+        leftWallGrid.material.transparent = true
+        leftWallGrid.rotation.x = Math.PI / 2
+        leftWallGrid.rotation.y = Math.PI / 2
+        leftWallGrid.position.x = -roomSize / 2
+        leftWallGrid.position.y = 500
+        scene.add(leftWallGrid)
+
+        // 创建右墙网格
+        const rightWallGrid = leftWallGrid.clone()
+        rightWallGrid.position.x = roomSize / 2
+        scene.add(rightWallGrid)
+
+        // 创建前墙网格（透明，不挡住视线）
+        const frontWallGrid = new THREE.GridHelper(
+          roomSize,
+          roomSize / gridSize,
+          gridColor,
+          gridColor
+        )
+        frontWallGrid.material.opacity = gridOpacity * 0.5
+        frontWallGrid.material.transparent = true
+        frontWallGrid.rotation.x = Math.PI / 2
+        frontWallGrid.position.z = roomSize / 2
+        frontWallGrid.position.y = 500
+        scene.add(frontWallGrid)
+
+        // 添加灯光
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
+        scene.add(ambientLight)
+
+        const directionalLight1 = new THREE.DirectionalLight(0x00d2ff, 0.6)
+        directionalLight1.position.set(1000, 1000, 1000)
+        directionalLight1.castShadow = true
+        scene.add(directionalLight1)
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3)
+        directionalLight2.position.set(-1000, 500, -1000)
+        scene.add(directionalLight2)
+
+        // 添加房间角落的柱子
+        const corners = [
+          {x: -roomSize / 2, y: -500, z: -roomSize / 2},
+          {x: roomSize / 2, y: -500, z: -roomSize / 2},
+          {x: -roomSize / 2, y: -500, z: roomSize / 2},
+          {x: roomSize / 2, y: -500, z: roomSize / 2},
+          {x: -roomSize / 2, y: 1500, z: -roomSize / 2},
+          {x: roomSize / 2, y: 1500, z: -roomSize / 2},
+          {x: -roomSize / 2, y: 1500, z: roomSize / 2},
+          {x: roomSize / 2, y: 1500, z: roomSize / 2}
+        ]
+
+        const pillarGeometry = new THREE.BoxGeometry(20, 2000, 20)
+        const pillarMaterial = new THREE.MeshBasicMaterial({
+          color: 0x00d2ff,
+          transparent: true,
+          opacity: 0.3
         })
-        const room = new THREE.LineSegments(roomGeometry, roomMaterial)
-        scene.add(room)
 
-        // Add light
-        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 4)
-        hemisphereLight.position.set(-25, 100, 50)
-        scene.add(hemisphereLight)
-
-        // Add cutout mesh
-        const geometry = new THREE.PlaneGeometry(1024, 768)
-        const material = new THREE.MeshBasicMaterial({
-          color: 0xff0000,
-          blending: THREE.NoBlending,
-          opacity: 0,
-          premultipliedAlpha: true
+        corners.forEach(corner => {
+          const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial)
+          pillar.position.set(corner.x, corner.y + 1000, corner.z)
+          scene.add(pillar)
         })
-        const mesh = new THREE.Mesh(geometry, material)
-        scene.add(mesh)
 
-        // Add frame
-        const frame = buildFrame(1024, 768, 50)
-        scene.add(frame)
-
-        // Add CSS3D element
-        const iframe = document.createElement('iframe')
-        iframe.style.width = '100%'
-        iframe.style.height = '100%'
-        iframe.style.border = '0px'
-        iframe.style.backfaceVisibility = 'hidden'
-        // iframe.src = 'http://125.64.78.14:50608/?gateId=b3147422-f4be-4e07-925c-4e10ac3484e0'
-        iframe.src = 'http://127.0.0.1:5500/test.html'
-        // iframe.src = 'http://localhost:9618/#/home-inner'
-        const css3dObject = new CSS3DObject(iframe)
-        css3dObject.position.set(0, 0, 1)
-        scene.add(css3dObject)
-
-        // Add controls
-        controls = new OrbitControls(camera, controlsDomElement)
-        controls.addEventListener('start', () => (iframe.style.pointerEvents = 'none'))
-        controls.addEventListener('end', () => (iframe.style.pointerEvents = 'auto'))
-        controls.enableDamping = true
-        controls.dampingFactor = 0.05
-
-        window.addEventListener('resize', onWindowResize)
+        // 添加空间悬浮粒子
+        createFloatingParticles()
       }
 
-      function buildFrame(width, height, thickness) {
-        const group = new THREE.Group()
-        const material = new THREE.MeshStandardMaterial({color: 0x2200ff})
+      // 创建悬浮粒子
+      function createFloatingParticles() {
+        const particleCount = 200
+        const particles = new THREE.BufferGeometry()
+        const positions = new Float32Array(particleCount * 3)
+        const colors = new Float32Array(particleCount * 3)
 
-        // Create the frame border
-        const outerShape = new THREE.Shape()
-        outerShape.moveTo(-(width / 2 + thickness), -(height / 2 + thickness))
-        outerShape.lineTo(width / 2 + thickness, -(height / 2 + thickness))
-        outerShape.lineTo(width / 2 + thickness, height / 2 + thickness)
-        outerShape.lineTo(-(width / 2 + thickness), height / 2 + thickness)
-        outerShape.lineTo(-(width / 2 + thickness), -(height / 2 + thickness))
+        for (let i = 0; i < particleCount; i++) {
+          const i3 = i * 3
+          const radius = 1200
+          const theta = Math.random() * Math.PI * 2
+          const phi = Math.random() * Math.PI
 
-        // Create inner rectangle (hole)
-        const innerHole = new THREE.Path()
-        innerHole.moveTo(-width / 2, -height / 2)
-        innerHole.lineTo(width / 2, -height / 2)
-        innerHole.lineTo(width / 2, height / 2)
-        innerHole.lineTo(-width / 2, height / 2)
-        innerHole.lineTo(-width / 2, -height / 2)
+          positions[i3] = radius * Math.sin(phi) * Math.cos(theta)
+          positions[i3 + 1] = (Math.random() - 0.5) * 2000
+          positions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta)
 
+          colors[i3] = 0.0
+          colors[i3 + 1] = 0.8 + Math.random() * 0.2
+          colors[i3 + 2] = 1.0
+        }
 
-        outerShape.holes.push(innerHole)
+        particles.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+        particles.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
-        const frameGeometry = new THREE.ExtrudeGeometry(outerShape, {
-          depth: thickness,
-          bevelEnabled: true, // Enable bevel
-          bevelThickness: 5,
-          bevelSize: 5,
-          bevelSegments: 2
+        const particleMaterial = new THREE.PointsMaterial({
+          size: 3,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.6
         })
 
-        // const frameMesh = new THREE.Mesh(frameGeometry, material)
-        // frameMesh.position.z = -thickness / 2
-        // group.add(frameMesh)
+        const particleSystem = new THREE.Points(particles, particleMaterial)
+        scene.add(particleSystem)
 
-        // // Add back plane
-        // const backGeometry = new THREE.PlaneGeometry(width + thickness * 2, height + thickness * 2)
-        // const backMesh = new THREE.Mesh(backGeometry, material)
-        // backMesh.position.set(0, 0, -thickness / 2)
-        // backMesh.rotation.y = Math.PI
-        // group.add(backMesh)
-
-        return group
+        particleSystem.userData = {
+          speed: 0.001
+        }
       }
 
+      // 创建无边框屏幕
+      function createBorderlessScreens() {
+        screenConfigs.forEach((config, index) => {
+          createScreen(config, index)
+        })
+
+        // 更新统计信息
+        document.getElementById('stats').textContent = `屏幕数量: ${screens.length} | 布局: 错落式`
+      }
+
+      // 创建单个无边框屏幕
+      function createScreen(config, index) {
+        const {width, height} = config.size
+
+        // 创建屏幕组
+        const screenGroup = new THREE.Group()
+
+        // 创建CSS3D内容
+        if (cssRenderer) {
+          // 创建iframe容器 - 去掉边框
+          const iframeContainer = document.createElement('div')
+          iframeContainer.style.width = width + 'px'
+          iframeContainer.style.height = height + 'px'
+          iframeContainer.style.borderRadius = '0px' // 去掉圆角
+          iframeContainer.style.overflow = 'hidden'
+          iframeContainer.style.boxShadow = 'none' // 去掉阴影
+          iframeContainer.style.transition = 'transform 0.3s ease'
+          iframeContainer.style.willChange = 'transform'
+          iframeContainer.style.border = 'none' // 去掉边框
+
+          // 创建iframe
+          const iframe = document.createElement('iframe')
+          iframe.style.width = '100%'
+          iframe.style.height = '100%'
+          iframe.style.border = 'none' // 去掉iframe边框
+          iframe.src = config.url
+          iframe.title = config.title
+          iframe.allow =
+            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+          iframe.allowFullscreen = true
+          iframe.sandbox =
+            'allow-same-origin allow-scripts allow-popups allow-forms allow-presentation'
+
+          iframeContainer.appendChild(iframe)
+
+          // 创建屏幕标签
+          const labelDiv = document.createElement('div')
+          labelDiv.className = 'screen-label'
+          labelDiv.textContent = config.title
+          labelDiv.style.transform = `translateY(${height / 2 + 30}px)`
+          iframeContainer.appendChild(labelDiv)
+
+          // 添加悬停事件
+          iframeContainer.addEventListener('mouseenter', () => {
+            labelDiv.style.opacity = '1'
+
+            // 保存当前变换状态
+            screenGroup.userData.isHovered = true
+            screenGroup.userData.targetScale = config.hoverScale || 1.05
+          })
+
+          iframeContainer.addEventListener('mouseleave', () => {
+            labelDiv.style.opacity = '0'
+
+            // 恢复状态
+            screenGroup.userData.isHovered = false
+            screenGroup.userData.targetScale = 1
+          })
+
+          const cssObject = new THREE.CSS3DObject(iframeContainer)
+          screenGroup.add(cssObject)
+
+          screenGroup.userData.cssObject = cssObject
+          screenGroup.userData.container = iframeContainer
+          screenGroup.userData.label = labelDiv
+          screenGroup.userData.iframe = iframe
+          screenGroup.userData.config = config
+          screenGroup.userData.currentScale = 1
+          screenGroup.userData.targetScale = 1
+        }
+
+        // 设置位置和旋转
+        screenGroup.position.set(config.position.x, config.position.y, config.position.z)
+        screenGroup.rotation.set(config.rotation.x, config.rotation.y, config.rotation.z)
+
+        // 让屏幕朝向观察者
+        const lookAtPoint = new THREE.Vector3(0, 0, 1000)
+        screenGroup.lookAt(lookAtPoint)
+
+        scene.add(screenGroup)
+
+        screens.push({
+          group: screenGroup,
+          config: config
+        })
+      }
+
+      // 窗口大小调整处理
       function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight
         camera.updateProjectionMatrix()
 
-        rendererWebGL.setSize(window.innerWidth, window.innerHeight)
-        rendererCSS3D.setSize(window.innerWidth, window.innerHeight)
+        renderer.setSize(window.innerWidth, window.innerHeight)
+
+        if (cssRenderer) {
+          cssRenderer.setSize(window.innerWidth, window.innerHeight)
+        }
       }
 
-      function animate() {
-        controls.update()
+      // 动画循环
+      function animate(time) {
+        requestAnimationFrame(animate)
 
-        rendererWebGL.render(scene, camera)
-        rendererCSS3D.render(scene, camera)
+        // 计算FPS
+        frameCount++
+        const currentTime = performance.now()
+        if (currentTime >= lastTime + 1000) {
+          fps = Math.round((frameCount * 1000) / (currentTime - lastTime))
+          frameCount = 0
+          lastTime = currentTime
+        }
+
+        // 更新控制器
+        if (controls) {
+          controls.update()
+        }
+
+        // 更新屏幕悬停动画
+        screens.forEach(screen => {
+          const group = screen.group
+          if (group.userData) {
+            // 平滑缩放动画
+            const scaleDiff = (group.userData.targetScale - group.userData.currentScale) * 0.1
+            group.userData.currentScale += scaleDiff
+
+            if (group.userData.cssObject) {
+              // 应用缩放
+              const scale = group.userData.currentScale
+              group.userData.cssObject.scale.set(scale, scale, scale)
+            }
+
+            // 如果有悬浮效果，可以添加轻微浮动动画
+            if (Math.abs(scaleDiff) > 0.001 && group.userData.isHovered) {
+              const floatOffset = Math.sin(time * 0.001) * 3
+              group.userData.cssObject.position.y = floatOffset
+            } else if (!group.userData.isHovered) {
+              group.userData.cssObject.position.y = 0
+            }
+          }
+        })
+
+        // 更新粒子动画
+        scene.children.forEach(child => {
+          if (child.isPoints && child.userData) {
+            child.rotation.y += child.userData.speed
+          }
+        })
+
+        // 渲染场景
+        renderer.render(scene, camera)
+
+        if (cssRenderer) {
+          cssRenderer.render(scene, camera)
+        }
       }
+
+      // 切换视图
+      function switchView(index) {
+        if (!camera || !controls || index >= viewPresets.length) return
+
+        const preset = viewPresets[index]
+
+        // 更新按钮状态
+        document.querySelectorAll('.control-btn').forEach((btn, i) => {
+          btn.classList.toggle('active', i === index)
+        })
+
+        // 平滑过渡到新视图
+        const startPosition = camera.position.clone()
+        const endPosition = new THREE.Vector3(
+          preset.position.x,
+          preset.position.y,
+          preset.position.z
+        )
+        const startTarget = controls.target.clone()
+        const endTarget = new THREE.Vector3(preset.target.x, preset.target.y, preset.target.z)
+
+        const duration = 1000
+        const startTime = Date.now()
+
+        function animateTransition() {
+          const elapsed = Date.now() - startTime
+          const progress = Math.min(elapsed / duration, 1)
+
+          const easeProgress = easeOutCubic(progress)
+
+          camera.position.lerpVectors(startPosition, endPosition, easeProgress)
+          controls.target.lerpVectors(startTarget, endTarget, easeProgress)
+
+          if (controls) {
+            controls.update()
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(animateTransition)
+          }
+        }
+
+        animateTransition()
+      }
+
+      // 缓动函数
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3)
+      }
+
+      // 页面加载完成后初始化
+      window.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 开始初始化网格房大屏...')
+        init()
+      })
+
+      // 处理页面卸载
+      window.addEventListener('beforeunload', () => {
+        if (renderer) {
+          renderer.dispose()
+        }
+      })
     </script>
   </body>
 </html>
